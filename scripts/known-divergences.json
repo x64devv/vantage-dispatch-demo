@@ -1,0 +1,28 @@
+{
+  "_file": "Values where the dispatch day and vantage-driver-app/lib/run.ts deliberately disagree.",
+  "_rule": "⚠⚠ A divergence on this list prints and is tolerated. A divergence NOT on this list fails `npm run derive`. Adding a line here is a decision with a name on it, not a way to silence the check — every entry carries what each side says, why, and who owns closing it. If an entry is closed, delete it; do not leave it here as scenery.",
+  "divergences": [
+    {
+      "id": "D1",
+      "what": "SKU on Nancy Muhoni's TV bracket (invoice 414414, line 2)",
+      "dispatchValue": "OB-MP-GB-801000067",
+      "driverValue": "OB-MP-GB-3019921",
+      "reason": "⚠⚠ The driver fixture invented its SKU and says so in a comment: 'the console records the descriptions only, and no SKU for either exists anywhere in the material'. One does. Transport-Material/demo/TRANSPORT-DEMO-MOCKUP-PROMPTS.md §SD-4 lists all three of this consignment's lines with SKUs and prices — it is in the same folder as the console's own seed data. The dispatch day uses the real one. Closing this is a one-line edit in the driver app, which this repo is not allowed to make.",
+      "owner": "Wyne — accept the real SKU into vantage-driver-app/lib/run.ts, or say the mockup prompt's SKUs are not to be trusted either",
+      "raised": "2026-08-21"
+    },
+    {
+      "id": "D2",
+      "what": "SKU on Nancy Muhoni's home theatre (invoice 414414, line 3)",
+      "dispatchValue": "OB-MP-GB-431520183",
+      "driverValue": "OB-MP-GB-3060412",
+      "reason": "Same source and same fix as D1. TRANSPORT-DEMO-MOCKUP-PROMPTS.md §SD-4: 'OB-MP-GB-431520183 Sony 600W Home Theatre 5.1Ch HT-S40R — 1 @ 388.74'.",
+      "owner": "Wyne — see D1",
+      "raised": "2026-08-21"
+    }
+  ],
+  "_open_not_divergences": [
+    "⚠⚠ CN-VE-000421 line 1, the Defy chest freezer 210L, is recorded UNSERIALISED so that the run derives exactly. TRP-004 §7 puts fridges inside the serialised set, so it is probably wrong. It is not on the list above because the two fixtures currently AGREE — they agree on something that may be false, which the check cannot see. Wyne's to answer; see the note on that line in dispatch-day.json.",
+    "⚠ The driver app has 8 stops with Nancy at stop 4. TRANSPORT-DEMO-MOCKUP-PROMPTS.md §DR-1 has 9 stops with Nancy at stop 9. The driver app is built and signed off; the mockup prompt is not. Nothing here depends on it."
+  ]
+}

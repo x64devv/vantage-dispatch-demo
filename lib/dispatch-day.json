@@ -1,0 +1,721 @@
+{
+  "_file": "dispatch-day.json — the goods-out day at Village Walk Electrical, Thursday 20 August 2026.",
+  "_rule": "⚠⚠ THIS FILE IS UPSTREAM OF THE DRIVER APP. Every stop, consignment, seal and serial in vantage-driver-app/lib/run.ts originates here, and scripts/derive-run.mjs in vantage-dispatch-demo/ regenerates that run from this file and refuses if the two disagree. Do not edit a serial, a seal, a load unit or a consignment number here without running the derivation.",
+  "_sources": [
+    "Transport-Material/TVSH-SDD-TRP-001-Domain-Model.md §4.1, §5.1, §5.5, §5.6, §6.6, §7.8, §7.9",
+    "Transport-Material/TVSH-SDD-TRP-002-Three-Applications.md §1, §3, §6",
+    "Transport-Material/TVSH-SDD-TRP-004-Serial-Trail-and-Money.md §1-§4",
+    "Transport-Material/demo/TRANSPORT-DEMO-MOCKUP-PROMPTS.md §1 (SD-1…SD-4) — the board rows, the blocked freezer and Nancy's three SKUs are lifted from here verbatim",
+    "vantage-transport-console/lib/data.ts — EXCEPTIONS[0], RECORD, BRANCHES, SEED_TRIP_ID, VEHICLES",
+    "vantage-driver-app/lib/run.ts — the run this file must produce"
+  ],
+  "_invented": "Openly invented, as the sibling fixtures' own data is: consignment numbers, load and seal numbers other than LD-000377 / Z-114882 / Z-114883, serial-assignment references, staff numbers, the desk clerk's name, collection-note numbers, and the ages on the awaiting-collection lane. Everything else is quoted from the documents listed above.",
+
+  "day": "2026-08-20",
+  "kicker": "THURSDAY 20 AUGUST",
+  "_clock_why": "⚠ The mockup prompt puts SD-1 at 07:40. It cannot be 07:40: the board it describes lists CN-VE-000418 as still awaiting our driver, and that consignment's serial was bound at 07:12 and its load sealed at 07:33. A board at 07:40 would already have let it go. Beat 4 must run BEFORE beat 5, so the board is at 07:02 and the scan follows it. Same class of correction the driver app made to its own handoff's calendar.",
+  "boardClock": "07:02",
+
+  "branch": {
+    "code": "VE",
+    "name": "Village Walk Electrical",
+    "_why": "Real TVSH branch. The console's BRANCHES array holds it as live; Marondera (MD) is the one behind."
+  },
+
+  "desk": {
+    "clerk": { "name": "R. Muparutsa", "staffNo": "STAFF-0914", "role": "Goods-out clerk" },
+    "_clerk_why": "⚠ Invented. TVSH's Fleet Register holds no store staff. The name matters only because TRP-002 §1.3 requires the issuing side and the receiving side to be two different people, and a screen with no name on it cannot show that.",
+    "terminal": { "storeNo": "101", "terminalNo": "T118", "class": "T7", "device": "Android tablet, 1280 × 800" },
+    "_terminal_why": "⚠ The driver's phone is terminal D204 of store 101 (run.ts). The dispatch tablet is a different commissioned terminal at the same store — which is the whole point of TRP-004 §6.2: the terminal number is inside every number the device mints, so two devices can never collide. T118 is invented; the shape is not.",
+    "sync": { "state": "live", "lastSync": "07:01", "queued": 0 },
+    "_sync_why": "The dispatch tablet is on the shop's wifi and is live. The driver's phone is not, and says so. Two devices, two honest states — never one blanket 'offline' mode."
+  },
+
+  "counters": {
+    "waiting": 11,
+    "outToday": 6,
+    "collected": 3,
+    "failed": 1,
+    "_why": "The foot strip from SD-1, quoted. Not derived from the rows below — nine rows are shown and the branch has more; a count that disagreed with the visible rows would be worse than one that is openly a branch total."
+  },
+
+  "consignments": [
+    {
+      "id": "CN-VE-000418",
+      "_why": "⭐ The consignment the whole demo turns on. Every identity on it appears on the console's TM-4 record for invoice 414414 and on the driver's stop 4.",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "depositBranch": null,
+      "invoiceRefs": ["414414"],
+      "invoice": {
+        "no": "414414",
+        "customerRef": "VE01/0033736",
+        "fiscalSignature": "D498-C19F-E480-D38A",
+        "device": "7874",
+        "_why": "⚠ Real, from the sample invoice. TRP-001 §7.8: attach the fiscal document, never re-render it. A rebuilt invoice that differs from the fiscal one by a cent is a dispute with a regulator in it."
+      },
+      "customer": { "name": "Nancy Muhoni", "phone": "0773 637 984" },
+      "address": {
+        "line": "Unit 7 Stand 312, St Malo, Greendale",
+        "full": "Unit 7 Stand 312 St Malo, Greendale, Harare",
+        "suburb": "Greendale",
+        "zone": "C",
+        "latlng": [-17.8012, 31.1284],
+        "pinGrade": "Salesperson",
+        "_pin_why": "⚠ The lowest of the three grades — salesperson / customer-confirmed / driver-confirmed. This address was typed by somebody standing in a shop. TM-4 later reads 'pin confirmed by driver' because the driver confirmed it at the door; it starts here as salesperson-typed and it must not pretend otherwise on the dispatch screen."
+      },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "13:45",
+      "charge": { "currency": "USD", "amount": "21.65" },
+      "cashAtDoor": { "currency": "USD", "amount": "1 150.00", "what": "Balance on cash sale, invoice 414414" },
+      "_cash_why": "The figure came down with the run. ⚠ It is not a balance and no screen subtracts anything from it — COPY-RULES.",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 4,
+      "stopSeq": 4,
+      "lines": [
+        {
+          "no": 1,
+          "sku": "OB-MP-GB-301071066",
+          "desc": "CTV Samsung 85\" QA85Q7FAAUXKE",
+          "qty": 1,
+          "unitPrice": "1990.48",
+          "serialised": true,
+          "enclosedTruck": true,
+          "crew": 2
+        },
+        {
+          "no": 2,
+          "sku": "OB-MP-GB-801000067",
+          "desc": "TV Bracket Ellis 60-120\"",
+          "qty": 1,
+          "unitPrice": "77.06",
+          "serialised": false,
+          "_sku_why": "⚠⚠ REAL, from TRANSPORT-DEMO-MOCKUP-PROMPTS.md §SD-4. vantage-driver-app/lib/run.ts carries OB-MP-GB-3019921 for this line and says in a comment that 'no SKU for either exists anywhere in the material'. One does — it is in the same folder as the console's own seed data. This is known divergence D1; see vantage-dispatch-demo/scripts/known-divergences.json."
+        },
+        {
+          "no": 3,
+          "sku": "OB-MP-GB-431520183",
+          "desc": "Sony 600W Home Theatre 5.1Ch HT-S40R",
+          "qty": 1,
+          "unitPrice": "388.74",
+          "serialised": false,
+          "_sku_why": "⚠⚠ REAL, same source as line 2. The driver fixture invented OB-MP-GB-3060412. Known divergence D2."
+        }
+      ]
+    },
+    {
+      "id": "CN-VE-000402",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414396"],
+      "customer": { "name": "T. Nyamayaro", "phone": "0772 118 004" },
+      "address": {
+        "line": "14 Ridgeway North, Highlands",
+        "full": "14 Ridgeway North, Highlands, Harare",
+        "suburb": "Highlands",
+        "zone": "B",
+        "latlng": [-17.79, 31.11],
+        "pinGrade": "Salesperson"
+      },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "08:30",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 1,
+      "stopSeq": 1,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-1104402", "desc": "Defy 4-plate stove", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-VE-000407",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414399"],
+      "customer": { "name": "Chisipite Junior School", "phone": "0242 495 118" },
+      "address": {
+        "line": "Cnr Hindhead / Chisipite Ave",
+        "full": "Cnr Hindhead / Chisipite Ave, Chisipite, Harare",
+        "suburb": "Chisipite",
+        "zone": "B",
+        "latlng": [-17.775, 31.12],
+        "pinGrade": "CustomerConfirmed"
+      },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "09:15",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 2,
+      "stopSeq": 2,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-3010433", "desc": "Hisense 43\" A4H", "qty": 3, "serialised": true, "enclosedTruck": true, "crew": 2, "_why": "⚠ Three units on one line, and the till splits a serial-tracked line into one row per unit (TRP-001 §5.5). So this line produces THREE SerialAssignments, and the driver's stop reads '3 serials bound' rather than a single number." }
+      ]
+    },
+    {
+      "id": "CN-VE-000411",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414405"],
+      "customer": { "name": "M. Kadzviti", "phone": "0771 440 233" },
+      "address": {
+        "line": "8 Arcturus Rd, Greendale",
+        "full": "8 Arcturus Rd, Greendale, Harare",
+        "suburb": "Greendale",
+        "zone": "C",
+        "latlng": [-17.806, 31.135],
+        "pinGrade": "Salesperson"
+      },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104871-02",
+      "promisedDate": "2026-08-20",
+      "window": "10:40",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 3,
+      "stopSeq": 3,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-5500121", "desc": "Restonic queen bed set", "qty": 1, "serialised": false, "enclosedTruck": true, "crew": 2, "_why": "⚠ Not serialised, and never will be — TRP-004 §7. A hire-to-buy contract on an unserialised line is exactly the case that cannot be repossessed by serial, and the screen says so rather than going quiet." }
+      ]
+    },
+    {
+      "id": "CN-VE-000421",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414410"],
+      "customer": { "name": "R. Mabhena", "phone": "0778 220 761" },
+      "address": {
+        "line": "31 Enterprise Rd, Msasa",
+        "full": "31 Enterprise Rd, Msasa, Harare",
+        "suburb": "Msasa",
+        "zone": "C",
+        "latlng": [-17.85, 31.12],
+        "pinGrade": "Salesperson"
+      },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104880-01",
+      "promisedDate": "2026-08-20",
+      "window": "15:10",
+      "cashAtDoor": { "currency": "ZWG", "amount": "4 200.00", "what": "HTB arrears promised on delivery" },
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 5,
+      "stopSeq": 5,
+      "lines": [
+        {
+          "no": 1,
+          "sku": "OB-MP-GB-13070042",
+          "desc": "Defy chest freezer 210L",
+          "qty": 1,
+          "serialised": false,
+          "enclosedTruck": true,
+          "crew": 2,
+          "_open": "⚠⚠ OPEN, AND WYNE'S TO ANSWER. TRP-004 §7 puts fridges and televisions inside the serialised set and bed sets and lounge suites outside it. A 210L chest freezer is a fridge, so this line should almost certainly read serialised:true — but vantage-driver-app/lib/run.ts binds no serial to it, and marking it serialised here would make the derived run disagree with the app that is already built and signed off. It is recorded unserialised so run.json derives exactly, and flagged rather than fixed. If it is serialised, this line needs a SerialAssignment on LD-000377 unit 5 and the driver fixture needs the serial too — a two-line change at both ends."
+        }
+      ]
+    },
+    {
+      "id": "CN-VE-000424",
+      "lane": "ourDriver",
+      "movementType": "BranchTransfer",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": [],
+      "transferRef": "IDO-VE-2026-08-20-0007",
+      "customer": { "name": "Borrowdale branch", "phone": "0242 885 010" },
+      "address": {
+        "line": "Shop 12, Sam Levy Village",
+        "full": "Shop 12, Sam Levy Village, Borrowdale, Harare",
+        "suburb": "Borrowdale",
+        "zone": "B",
+        "latlng": [-17.75, 31.09],
+        "pinGrade": "DriverConfirmed"
+      },
+      "tender": "None",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "16:00",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 6,
+      "stopSeq": 6,
+      "receiptScanAtFarEnd": true,
+      "_why": "⚠⚠ The receiving half. TRP-004 §1.1: two scans, at two ends of a movement, and they agree or there is an exception with a person's name on it. This is the only consignment on the load whose far end scans — a customer does not scan, a branch does. It is also the highest-volume path in the business and the one whose written check is weakest (TRP-004 §4).",
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-2201107", "desc": "Whirlpool 7kg washer", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 },
+        { "no": 2, "sku": "OB-MP-GB-1104402", "desc": "Defy 4-plate stove", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 },
+        { "no": 3, "sku": "OB-MP-GB-5500121", "desc": "Restonic queen bed set", "qty": 1, "serialised": false, "enclosedTruck": true, "crew": 2 },
+        { "no": 4, "sku": "OB-MP-GB-3010433", "desc": "Hisense 43\" A4H", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-VE-000427",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414419"],
+      "customer": { "name": "P. Chikafu", "phone": "0776 301 992" },
+      "address": {
+        "line": "5 Fenwick Rd, Avondale",
+        "full": "5 Fenwick Rd, Avondale, Harare",
+        "suburb": "Avondale",
+        "zone": "A",
+        "latlng": [-17.797, 31.035],
+        "pinGrade": "CustomerConfirmed"
+      },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104882-04",
+      "_htb_why": "⭐ The contract number TRP-004 §3.3 uses. This is the ONE consignment on the load that is both serialised and on hire-to-buy, so its dispatch scan is the only one that fires the second write — Vantage HTB Contract Line.\"Serial No.\" — the field that has never been populated in the shipped code because VantageContractBuilder.AddLine has no caller. ⚠⚠ If that row is meant to be seen on the day, the demo has to reach this consignment.",
+      "promisedDate": "2026-08-20",
+      "window": "16:45",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 7,
+      "stopSeq": 7,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-2201107", "desc": "Whirlpool 7kg washer", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-VE-000429",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414423"],
+      "customer": { "name": "L. Sibanda", "phone": "0712 664 108" },
+      "address": {
+        "line": "112 Seke Rd, Hatfield",
+        "full": "112 Seke Rd, Hatfield, Harare",
+        "suburb": "Hatfield",
+        "zone": "D",
+        "latlng": [-17.88, 31.08],
+        "pinGrade": "Salesperson"
+      },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "17:30",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-05",
+      "load": "LD-000377",
+      "loadUnit": 8,
+      "stopSeq": 8,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-3010551", "desc": "Sansui 55\" smart TV", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    },
+
+    {
+      "id": "CN-AV-000120",
+      "_why": "⚠ Cross-store, and the visibility rule made visible (TRP-001 §7.8): sold at Avondale, the goods are here, so it is on BOTH boards — a promise on theirs, a job to pick on ours. Today that hand-off is a phone call.",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "AV",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414461"],
+      "customer": { "name": "Nyasha Mhlanga", "phone": "0774 902 118" },
+      "address": { "line": "22 Delport Rd, Glen Lorne", "full": "22 Delport Rd, Glen Lorne, Harare", "suburb": "Glen Lorne", "zone": "B", "latlng": [-17.72, 31.14], "pinGrade": "Salesperson" },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104901-01",
+      "promisedDate": "2026-08-21",
+      "window": "—",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-3010751", "desc": "CTV LG 75\" NanoCell", "qty": 1, "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-VE-000125",
+      "lane": "carrier",
+      "_why": "⚠ A hired carrier. TRP-001 §6.6.2: they were never on our app, so the load photograph plus the gate-pass scan is the ENTIRE evidentiary basis for a damage claim against them — $434,319 of third-party spend YTD sits behind that.",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "VE",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414208"],
+      "customer": { "name": "Takudzwa Mangwiro", "phone": "0775 118 663" },
+      "address": { "line": "Stand 4412, Beatrice", "full": "Stand 4412, Beatrice", "suburb": "Beatrice", "zone": "G", "latlng": [-18.25, 30.85], "pinGrade": "Salesperson" },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104702-03",
+      "promisedDate": "2026-08-22",
+      "window": "—",
+      "status": "READY",
+      "carrier": { "name": "Cheetah Express", "vehicle": "ACL 4471" },
+      "needs": { "enclosedTruck": false, "twoPerson": true },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-1104460", "desc": "Cooker Luxor 60x80 5-burner", "qty": 1, "serialised": true, "enclosedTruck": false, "crew": 2 },
+        { "no": 2, "sku": "OB-MP-GB-1104901", "desc": "Gas cylinder 9kg", "qty": 1, "serialised": false, "enclosedTruck": false, "crew": 1 }
+      ]
+    },
+
+    {
+      "id": "CN-AV-000015",
+      "_why": "⭐ Beat 6, exactly as TRANSPORT-DEMO-MOCKUP-PROMPTS.md §SD-3 specifies it: Farai Ncube, Luxury Supreme Bedset Queen, one line, HTB, sold at Avondale, held nine days. ⚠⚠ AND THE THING TO NOTICE: a bedset is NOT serialised (TRP-004 §7), so beat 6 as specced shows the collection control WITHOUT a serial scan. CN-BR-000028 below is the serialised collection. Wyne to pick which one runs on the day — §12 of the demo repo's CLAUDE.md.",
+      "lane": "collection",
+      "movementType": "CustomerCollection",
+      "fulfilment": "CollectAtSource",
+      "sellingBranch": "AV",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414077"],
+      "customer": { "name": "Farai Ncube", "phone": "0782 441 077", "idNo": "63-2049117-K-42" },
+      "address": { "line": "Collecting at VE", "full": "Collecting at Village Walk Electrical", "suburb": "—", "zone": "—", "latlng": null, "pinGrade": "NotRequired" },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104655-02",
+      "promisedDate": "2026-08-11",
+      "collectionDueBy": "2026-08-25",
+      "heldDays": 9,
+      "status": "READY",
+      "needs": { "enclosedTruck": false, "twoPerson": true },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-5500388", "desc": "Luxury Supreme Bedset Queen", "qty": 1, "serialised": false, "enclosedTruck": false, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-BR-000028",
+      "_why": "⭐ The collection that DOES carry a serial — a Hisense 222L fridge, from the SD-1 board. This is the one that answers 'a serial scan bound to the sale transaction' at a counter with no truck in it: same scan, same four checks, same signature, same binding, no driver anywhere.",
+      "lane": "collection",
+      "movementType": "CustomerCollection",
+      "fulfilment": "CollectAtSource",
+      "sellingBranch": "BR",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414318"],
+      "customer": { "name": "Simba Mhlanga", "phone": "0773 810 442", "idNo": "63-1774209-M-18" },
+      "address": { "line": "Collecting at VE", "full": "Collecting at Village Walk Electrical", "suburb": "Kambuzuma", "zone": "E", "latlng": null, "pinGrade": "NotRequired" },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-08",
+      "collectionDueBy": "2026-08-22",
+      "heldDays": 12,
+      "_age_why": "⚠ Twelve days. TVSH already prints on every invoice: 'all goods not collected within 2 weeks will attract a 3% of invoice penalty.' No system watches that clock today; the board is the whole implementation (TRP-001 §7.9).",
+      "status": "READY",
+      "needs": { "enclosedTruck": false, "twoPerson": true },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-1207222", "desc": "Fridge Hisense 222L bottom freezer", "qty": 1, "unitPrice": "612.40", "serialised": true, "enclosedTruck": false, "crew": 2 },
+        { "no": 2, "sku": "OB-MP-GB-1209004", "desc": "Fridge stabiliser 1000VA", "qty": 1, "unitPrice": "38.90", "serialised": false, "enclosedTruck": false, "crew": 1 }
+      ]
+    },
+    {
+      "id": "CN-WK-000041",
+      "lane": "collection",
+      "_why": "⚠⚠ Fifteen days. Past the fourteen-day clock, so the 3% penalty is due — the row the board exists to surface. It ages quietly; it does not shout.",
+      "movementType": "CustomerCollection",
+      "fulfilment": "CollectAtSource",
+      "sellingBranch": "WK",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414012"],
+      "customer": { "name": "Anesu Bere", "phone": "0719 224 806" },
+      "address": { "line": "Collecting at VE", "full": "Collecting at Village Walk Electrical", "suburb": "Kuwadzana", "zone": "E", "latlng": null, "pinGrade": "NotRequired" },
+      "tender": "HTB",
+      "htb": true,
+      "htbContract": "HTB-104590-01",
+      "promisedDate": "2026-08-05",
+      "collectionDueBy": "2026-08-19",
+      "heldDays": 15,
+      "penaltyDue": { "pct": 3, "of": "invoice" },
+      "status": "READY",
+      "needs": { "enclosedTruck": false, "twoPerson": true },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-5210080", "desc": "C/T Bloom 80cm round", "qty": 1, "serialised": false, "enclosedTruck": false, "crew": 1 },
+        { "no": 2, "sku": "OB-MP-GB-5210081", "desc": "Dining chair Bloom", "qty": 4, "serialised": false, "enclosedTruck": false, "crew": 1 },
+        { "no": 3, "sku": "OB-MP-GB-5500404", "desc": "Bedside pedestal", "qty": 2, "serialised": false, "enclosedTruck": false, "crew": 1 },
+        { "no": 4, "sku": "OB-MP-GB-1104402", "desc": "Defy 4-plate stove", "qty": 1, "serialised": true, "enclosedTruck": false, "crew": 2 }
+      ]
+    },
+    {
+      "id": "CN-MW-000014",
+      "lane": "collection",
+      "movementType": "CustomerCollection",
+      "fulfilment": "CollectAtSource",
+      "sellingBranch": "MW",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414455"],
+      "customer": { "name": "Gift Nyandoro", "phone": "0777 663 201" },
+      "address": { "line": "Collecting at VE", "full": "Collecting at Village Walk Electrical", "suburb": "Manyame Park", "zone": "F", "latlng": null, "pinGrade": "NotRequired" },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-19",
+      "collectionDueBy": "2026-09-02",
+      "heldDays": 1,
+      "status": "READY",
+      "needs": { "enclosedTruck": false, "twoPerson": false },
+      "trip": null,
+      "load": null,
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-5210080", "desc": "C/T Bloom 80cm round", "qty": 1, "serialised": false, "enclosedTruck": false, "crew": 1 },
+        { "no": 2, "sku": "OB-MP-GB-5210081", "desc": "Dining chair Bloom", "qty": 4, "serialised": false, "enclosedTruck": false, "crew": 1 }
+      ]
+    },
+
+    {
+      "id": "CN-MW-000121",
+      "_why": "⚠⚠ THE ONE THAT STOPS. Sold at Mega Watt, the goods are held here, and it is going out on trip 03. Its freezer is the unit the picker gets wrong at 07:31 — see exceptions[0].",
+      "lane": "ourDriver",
+      "movementType": "CustomerDelivery",
+      "fulfilment": "Deliver",
+      "sellingBranch": "MW",
+      "sourceBranch": "VE",
+      "invoiceRefs": ["414470"],
+      "customer": { "name": "Tapiwa Muchena", "phone": "0771 508 336" },
+      "address": { "line": "8814 Budiriro 5", "full": "8814 Budiriro 5, Harare", "suburb": "Budiriro", "zone": "E", "latlng": [-17.9, 30.92], "pinGrade": "Salesperson" },
+      "tender": "Cash",
+      "htb": false,
+      "promisedDate": "2026-08-20",
+      "window": "12:20",
+      "status": "READY",
+      "needs": { "enclosedTruck": true, "twoPerson": true },
+      "trip": "TR-HRE-2026-08-20-03",
+      "load": "LD-000381",
+      "loadUnit": 5,
+      "stopSeq": 5,
+      "_zone_open": "⚠ OPEN: Budiriro is Zone E and the console has trip 03 as Zone B. The suburb comes from the mockup prompt and the zone from the console; both are quoted rather than reconciled, because reconciling them means changing one of two already-agreed fixtures. Wyne's to settle. It does not appear on any dispatch screen.",
+      "lines": [
+        { "no": 1, "sku": "OB-MP-GB-13070300", "desc": "Defy Solar CF300 chest freezer", "qty": 1, "unitPrice": "744.20", "serialised": true, "enclosedTruck": true, "crew": 2 }
+      ]
+    }
+  ],
+
+  "loads": [
+    {
+      "id": "LD-000377",
+      "_why": "⭐ The load the driver run rides on. Its seals and its eight units are quoted by vantage-driver-app/lib/run.ts and by the console's TM-4.",
+      "trip": "TR-HRE-2026-08-20-05",
+      "zone": "Zone C · Greendale / East",
+      "vehicle": { "reg": "AGE5599", "fleetNo": "TVS103", "make": "UD Kuzer, 22.0 m³" },
+      "driver": { "name": "T. Mukanya", "staffNo": "STAFF-1183" },
+      "crew": { "name": "W. Sibindi", "staffNo": "STAFF-1206" },
+      "depot": { "code": "VE", "name": "Village Walk Electrical" },
+      "departedDepot": { "at": "06:52", "source": "Geofence", "_why": "⚠ 06:52 is the DEPOT gate at Willowvale, from the console's TM-4 — not the store. The truck leaves the depot empty, drives to Village Walk and is loaded there from 07:04. That is why a departure can precede a scan-out by twenty minutes without either being wrong." },
+      "scanStarted": "07:04",
+      "sealedAt": "07:33",
+      "seals": ["Z-114882", "Z-114883"],
+      "gatePass": "GP-VE-2026-08-20-0021",
+      "handover": {
+        "acceptedAt": "07:36",
+        "acceptedBy": "T. Mukanya",
+        "acceptedOn": "D204",
+        "issuedBy": "R. Muparutsa",
+        "issuedOn": "T118",
+        "sealFormSignedBy": ["T. Mukanya", "Security — G. Zvobgo"],
+        "_why": "⚠⚠ Two people, two devices, one serial (TRP-002 §1.3). The store issues on T118; the driver accepts on D204 and countersigns. Today the driver verifies his own load. The Van Assistant SOP Appendix V already requires driver, assistant, dispatch clerk and security to witness the sealing together — this is that procedure with the paperwork removed, not a new control."
+      },
+      "state": "IN_TRANSIT"
+    },
+    {
+      "id": "LD-000381",
+      "_why": "Trip 03's load, worked at the same desk immediately after LD-000377. It is where the block happens. ⚠ Not sealed — the load is held while the exception is open, and the trip departs without that line (TRP-004 §4: one blocked line does not ground a truck).",
+      "trip": "TR-HRE-2026-08-20-03",
+      "zone": "Zone B",
+      "vehicle": { "reg": "AFK1578", "fleetNo": "TVS90", "make": "UD MKE, 34.0 m³" },
+      "driver": { "name": "T. Mukanya", "staffNo": "STAFF-1183" },
+      "_driver_open": "⚠⚠ OPEN, AND IT IS THE CONSOLE'S TO SETTLE. The console has T. Mukanya driving trip 03 (LIVE_TRIPS) and also carrying invoice 414414 on trip 05 (RECORD). He cannot do both. Wyne's call on 21 Aug was that the console wins, so both strings are kept and neither fixture was edited. On this screen he is the person who RAISED the exception — the name on it — which is true either way and is the only claim the dispatch app makes about him here.",
+      "crew": { "name": "P. Zvinavashe", "staffNo": "STAFF-1211" },
+      "depot": { "code": "VE", "name": "Village Walk Electrical" },
+      "departedDepot": { "at": "07:06", "source": "Geofence" },
+      "scanStarted": "07:29",
+      "sealedAt": null,
+      "seals": [],
+      "gatePass": null,
+      "handover": null,
+      "state": "OPEN"
+    }
+  ],
+
+  "serialAssignments": [
+    { "id": "SA-000091441", "serial": "#G-000004778112", "consignment": "CN-VE-000402", "line": 1, "unit": 1, "boundAt": "07:04", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 1", "condition": "Good", "conditionPhoto": true, "state": "BOUND_AT_DISPATCH" },
+    { "id": "SA-000091442", "serial": "#G-000004779330", "consignment": "CN-VE-000407", "line": 1, "unit": 1, "boundAt": "07:06", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 2", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH" },
+    { "id": "SA-000091443", "serial": "#G-000004779331", "consignment": "CN-VE-000407", "line": 1, "unit": 2, "boundAt": "07:07", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 2", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH" },
+    { "id": "SA-000091444", "serial": "#G-000004779338", "consignment": "CN-VE-000407", "line": 1, "unit": 3, "boundAt": "07:08", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 2", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH" },
+    {
+      "id": "SA-000091447",
+      "serial": "#G-000004791204",
+      "consignment": "CN-VE-000418",
+      "line": 1,
+      "unit": 1,
+      "boundAt": "07:12",
+      "boundAtLocation": "VE",
+      "boundBy": "STAFF-0914",
+      "capturedBy": "Scanned",
+      "loadUnit": "LD-000377 / 4",
+      "condition": "Good",
+      "conditionPhoto": true,
+      "state": "BOUND_AT_DISPATCH",
+      "writes": ["Vantage Trans. Sales Entry (414414, line 1).\"Serial No.\""],
+      "_why": "⭐ The reference and the timestamp are TRP-004 §3.2's. The console's TM-4 reads 'Scanned out 20 Aug 2026 07:12 · Village Walk · scanned, not typed'. ⚠ A cash sale has no contract line, so only the first write fires and the screen says so out loud rather than going quiet."
+    },
+    {
+      "id": "SA-000091452",
+      "serial": "#G-000004788051",
+      "consignment": "CN-VE-000427",
+      "line": 1,
+      "unit": 1,
+      "boundAt": "07:26",
+      "boundAtLocation": "VE",
+      "boundBy": "STAFF-0914",
+      "capturedBy": "Scanned",
+      "loadUnit": "LD-000377 / 7",
+      "condition": "Good",
+      "conditionPhoto": true,
+      "state": "BOUND_AT_DISPATCH",
+      "writes": [
+        "Vantage Trans. Sales Entry (414419, line 1).\"Serial No.\"",
+        "Vantage HTB Contract Line (HTB-104882-04, line 1).\"Serial No.\""
+      ],
+      "_why": "⭐⭐ THE ONE THAT MATTERS. Serialised AND on hire-to-buy, so the second write fires — the field that is declared in the codebase and has never been populated by any shipped path. This single row is what makes a repossession provable, and it is the strongest claim in the whole specification."
+    },
+    { "id": "SA-000091455", "serial": "#G-000004790884", "consignment": "CN-VE-000429", "line": 1, "unit": 1, "boundAt": "07:31", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 8", "condition": "Good", "conditionPhoto": true, "state": "BOUND_AT_DISPATCH" },
+
+    { "id": "SA-000091448", "serial": "#G-000004788044", "consignment": "CN-VE-000424", "line": 1, "unit": 1, "boundAt": "07:20", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR" },
+    { "id": "SA-000091449", "serial": "#G-000004778120", "consignment": "CN-VE-000424", "line": 2, "unit": 1, "boundAt": "07:21", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Typed", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR",
+      "_why": "⚠⚠ TYPED, NOT SCANNED — the barcode on the back of this stove would not read in the stock room. TRP-004 §7 makes typed entry the fallback and records it AS typed, because two grades of a fact are two visibly different things. It is put on a transfer line deliberately: the driver never sees this row, so the grade shows where it is acted on — the dispatch screen and the console. ⚠ If typed entries run high in month one that is a hardware finding (a rugged Bluetooth scanner), not a discipline problem." },
+    { "id": "SA-000091451", "serial": "#G-000004779344", "consignment": "CN-VE-000424", "line": 4, "unit": 1, "boundAt": "07:24", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR" }
+  ],
+
+  "quantityConfirmations": [
+    { "consignment": "CN-VE-000411", "line": 1, "qty": 1, "at": "07:10", "by": "STAFF-0914", "condition": "Good", "loadUnit": "LD-000377 / 3", "_why": "Unserialised lines confirm by quantity and condition. The gate is per line, never a global mode — a half-serialised catalogue has to be a supported state or the control is switched off in week two." },
+    { "consignment": "CN-VE-000418", "line": 2, "qty": 1, "at": "07:13", "by": "STAFF-0914", "condition": "Good", "loadUnit": "LD-000377 / 4" },
+    { "consignment": "CN-VE-000418", "line": 3, "qty": 1, "at": "07:14", "by": "STAFF-0914", "condition": "Good", "loadUnit": "LD-000377 / 4" },
+    { "consignment": "CN-VE-000421", "line": 1, "qty": 1, "at": "07:18", "by": "STAFF-0914", "condition": "Good", "loadUnit": "LD-000377 / 5" },
+    { "consignment": "CN-VE-000424", "line": 3, "qty": 1, "at": "07:23", "by": "STAFF-0914", "condition": "Good", "loadUnit": "LD-000377 / 6" }
+  ],
+
+  "exceptions": [
+    {
+      "ref": "EX-000029114",
+      "_why": "⚠⚠ Quoted field for field from vantage-transport-console/lib/data.ts EXCEPTIONS[0]. Wyne's call on 21 August: where the console and TRP-004 §4 disagree about which load this line was on, THE CONSOLE WINS. So the line belongs to trip 03, not to the driver run — and the driver's stop 5 freezer is unrelated to it. ⚠ Nothing in this app may change the ref, the time, the name, the serial, the invoice or the wording; the console renders them at beat 11.",
+      "kind": "SerialMismatch",
+      "title": "Serial mismatch — blocked at the load",
+      "serial": "#G-000004652985",
+      "consignment": "CN-MW-000121",
+      "line": 1,
+      "load": "LD-000381",
+      "trip": "TR-HRE-2026-08-20-03",
+      "expected": "an unsold unit of OB-MP-GB-13070300 at VE",
+      "found": { "status": "Sold", "invoice": "410233", "soldOn": "2026-06-21", "location": "KW", "leftKwekwe": "2026-06-24" },
+      "raisedAt": "07:31",
+      "raisedBy": { "name": "T. Mukanya", "staffNo": "STAFF-1183" },
+      "raisedAtLocation": "VE",
+      "capturedBy": "Scanned",
+      "fault": "TVSH",
+      "status": "Open",
+      "detail": "Sold on invoice 410233, 21 June, dispatched to Kwekwe.",
+      "expanded": "Serial #G-000004652985 scanned onto trip 03; the trail says it left Kwekwe on 24 June. The load is held. Override requires the Serial Mismatch Override grant.",
+      "screenText": "This freezer was sold on 21 June and sent to Kwekwe. Fetch the loading clerk before continuing.",
+      "_screenText_why": "⚠⚠ TRP-004 §4 step 2, verbatim. It names what is wrong AND who to fetch. Do not paraphrase it, do not soften it, and do not turn it into a toast.",
+      "override": {
+        "grant": "Vantage Transport - Serial Override",
+        "consoleName": "Serial Mismatch Override",
+        "heldBy": "Branch manager",
+        "clerkHolds": false,
+        "_why": "⚠⚠ THERE IS NO SKIP BUTTON. The override exists, it is a SEPARATE permission set deliberately excluded from the umbrella — exactly as Vantage Statement Rollback is in retail — and using it writes a record with a name on it. The clerk on this desk does not hold it, and the control says so in its own label rather than hiding."
+      },
+      "tells": [
+        "A stock record is wrong. Either #G-000004652985 never went to Kwekwe, or Kwekwe received a different unit and nobody scanned it.",
+        "The picking process put a sold unit on a trolley. That is exactly how serialised electronics leave a warehouse and never come back."
+      ],
+      "consequences": [
+        "The load line is blocked. Not warned. The freezer does not go on the truck.",
+        "The trip can still depart with its other stops. One blocked line does not ground a truck — that would turn a control into an outage, and an outage is what gets a control switched off.",
+        "CN-MW-000121 returns to READY. It was never PART_DELIVERED, because nothing left the building."
+      ]
+    }
+  ],
+
+  "collections": [
+    {
+      "ref": "COL-VE-2026-08-20-0006",
+      "consignment": "CN-AV-000015",
+      "at": "09:20",
+      "dispatchPoint": "VE goods-out counter 2",
+      "issuedBy": "STAFF-0914",
+      "receiver": { "name": "Farai Ncube", "idNo": "63-2049117-K-42", "relationship": "Account holder" },
+      "idPhotograph": "captured",
+      "signature": "captured",
+      "serialScans": [],
+      "_why": "⚠ No serial rows, because a bedset is not serialised. The screen shows the quantity-and-condition path, and says which it is. Faking a serial here to make the screen look better would contradict TRP-004 §7 and the catalogue."
+    },
+    {
+      "ref": "COL-VE-2026-08-20-0007",
+      "consignment": "CN-BR-000028",
+      "at": "10:05",
+      "dispatchPoint": "VE goods-out counter 2",
+      "issuedBy": "STAFF-0914",
+      "receiver": { "name": "Simba Mhlanga", "idNo": "63-1774209-M-18", "relationship": "Account holder" },
+      "idPhotograph": "captured",
+      "signature": "captured",
+      "serialScans": [
+        { "id": "SA-000091460", "serial": "#G-000004776031", "line": 1, "capturedBy": "Scanned", "condition": "Good", "conditionPhoto": true, "writes": ["Vantage Trans. Sales Entry (414318, line 1).\"Serial No.\""], "state": "BOUND_AT_DISPATCH" }
+      ],
+      "_why": "⭐ The same binding a truck-load produces, with no truck anywhere in it. Today this is a person walking out of a shop with a fridge, recorded — if at all — on a Confirmation Note whose printed fields are 'Name of Driver' and 'Truck Reg Number'."
+    }
+  ],
+
+  "driverRunFacts": {
+    "_why": "⚠ Facts the DRIVER app owns, restated here only so scripts/derive-run.mjs can assemble a complete run.json. Dispatch does not produce any of them: the phone's terminal, the time the run downloaded, the dispatcher's stop order and the optimiser's answer, the sign-in and debrief clocks, the evidence times at the door, the deposit branches and the receipt series. If one of these changes, it changes in vantage-driver-app/lib/run.ts and here — never here alone.",
+    "terminal": { "storeNo": "101", "terminalNo": "D204", "class": "T9" },
+    "downloadedAt": "06:41",
+    "currentStopSeq": 4,
+    "build": "0.1.0 · driverApp",
+    "startPosition": [-17.808, 31.14],
+    "dispatcherOrder": [4, 5, 6, 7, 8],
+    "optimisedOrder": [4, 6, 7, 8, 5]
+  }
+}

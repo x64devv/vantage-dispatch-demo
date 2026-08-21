@@ -1,0 +1,62 @@
+/* App-level rules that are not part of the Modernist sheet.
+   ⚠ Radius is 0 everywhere. The only exception in this file is the tablet bezel,
+   which is hardware, not UI. */
+
+html,
+body {
+  background: #e4e3e2; /* the desk the tablet sits on; not a UI colour */
+}
+
+/* ⚠ Focus is always the accent ring, never the browser default. */
+:focus-visible,
+.focusable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Body copy wraps kindly; rows ellipse on one line instead. */
+.pretty {
+  text-wrap: pretty;
+}
+
+/* The tablet's own scroll areas — no visible scrollbar, it is a tablet. */
+.scr {
+  scrollbar-width: none;
+}
+.scr::-webkit-scrollbar {
+  width: 0;
+}
+
+a {
+  color: var(--color-accent-700);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-accent);
+}
+
+/* Hover tint on any tappable surface. */
+.tappable:hover {
+  background: color-mix(in srgb, var(--color-text) 9%, transparent) !important;
+}
+.tap8:hover {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent) !important;
+}
+
+/* ⚠ The camera region on the scan screen is a dark rectangle with a reticle, and
+   it is labelled as a simulation. There is no camera in this build and the screen
+   never implies there is. */
+.cam {
+  position: relative;
+  background: #1b1a19;
+  overflow: hidden;
+}
+.cam::after {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 26%;
+  bottom: 26%;
+  border: 2px solid rgba(243, 242, 242, 0.55);
+}

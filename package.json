@@ -1,0 +1,26 @@
+{
+  "name": "vantage-dispatch-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo build of Vantage Dispatch (TVSH Transport) — the store goods-out tablet. Next.js, static export, no server. Temporary — see README.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "npm run data && next build",
+    "start": "node serve.mjs",
+    "lint": "next lint",
+    "data": "node scripts/sync-data.mjs",
+    "derive": "node scripts/derive-run.mjs",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.0",
+    "typescript": "5.7.2"
+  }
+}
