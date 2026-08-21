@@ -200,6 +200,16 @@ appears on no dispatch screen.
 
 ## 8. Traps
 
+- ⚠⚠ **A guard that only blocks the honest case.** `sync-data.mjs` originally exited 2 whenever the
+  handoff was not beside this repo — and this repo is pushed to GitHub **on its own**, so that is
+  every build server. It failed every Vercel build, which produced no deployment, which is why
+  `vantage-dispatch-demo.vercel.app` answered `DEPLOYMENT_NOT_FOUND` rather than anything about a
+  build. **The refusal was right about the rule and wrong about the world.** There are three states
+  now, not two: handoff present → copy and **pin** the copy's checksum into
+  `lib/dispatch-day.sha256`; handoff absent and the pin matches → build, saying so; handoff absent
+  and the pin is missing or does not match → refuse. ⚠ The pin is only ever written when the real
+  handoff is on disk, so editing the copy alone still fails by name — the control survives, it just
+  stopped catching the wrong thing.
 - ⚠⚠ **`1fr` is not `minmax(0, 1fr)`.** The board's three lanes were `1fr 1fr 1fr` and a long goods
   description silently widened its own lane — making the **collection lane the narrow one**, which is
   the exact opposite of what that screen exists to say. Found by measuring the computed columns.
@@ -242,6 +252,7 @@ appears on no dispatch screen.
 | Screens built | ✅ 6 of 6 |
 | Seen in a real browser | ✅ headless Chromium, and screenshots read by eye |
 | Seen on a projector | ☐ **no** |
+| Deployed | ⚠ 21 Aug: pushed to `github.com/x64devv/vantage-dispatch-demo`, and **every Vercel build failed** on the guard above. Fixed and proven both ways; **the fix has not been pushed** |
 
 **What was actually run**, on 21 August, in a Linux container:
 
@@ -263,6 +274,10 @@ appears on no dispatch screen.
   pixels, and no ink where the pointer never went** · the unserialised collection saying so and
   showing no serial · no `<img>` anywhere inside the tablet · the console's exception wording
   verbatim · `?bare=1` dropping the rails · a hard reload keeping the desk.
+- The standalone case proven **both ways**, on a copy of this repo with no sibling directory: it
+  builds and prints the pinned checksum it verified against, and — with one serial altered in
+  `lib/dispatch-day.json` — it **refuses with both digests on screen**. A check nobody has seen fail
+  is not a check, and this one had never been seen succeed in the environment that actually runs it.
 - Screenshots of all eleven states, **looked at** — which is how the lane-width bug, the scrolling
   count, the below-the-fold foot strip and the `CUSTOMERDELIVERY` enum were found.
 

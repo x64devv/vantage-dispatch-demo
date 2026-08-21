@@ -26,6 +26,25 @@ nothing else — it works on a demo laptop with no network and no `npx`.
 
 **`?bare=1`** drops the demo rails so the tablet goes full-screen on a projector.
 
+### Deploy it
+
+This repo is pushed to GitHub on its own, so **the handoff is not beside it on a build server.**
+`lib/dispatch-day.json` is committed together with `lib/dispatch-day.sha256`, which is written only
+ever from the real handoff — so a standalone build verifies the copy against its pin and says so:
+
+```
+dispatch-day.json — the handoff is not in this checkout (standalone build).
+  The pinned copy matches its recorded checksum 1096486c03d4…, so it is the
+  same bytes that were checked against vantage-driver-app/lib/run.ts. Building.
+```
+
+⚠⚠ **Edit `lib/dispatch-day.json` directly and the next build refuses**, because the pin can only be
+rewritten when the real handoff is on disk. That is the point: an edit that has never been checked
+against the driver app must not reach a deployment.
+
+Vercel needs no configuration — it detects Next.js and runs `npm run build`. No environment
+variables, no root-directory setting, no `vercel.json`. Nothing here calls the network at runtime.
+
 ### Check it
 
 ```sh
@@ -42,6 +61,7 @@ npm run verify     # drive the exported app in a real browser and assert (needs 
 | | |
 |---|---|
 | `lib/dispatch-day.json` | ⚠ a **copy**. The one that counts is `../Transport-Material/design_handoff_dispatch_app/data/dispatch-day.json`, and `npm run build` overwrites this from it |
+| `lib/dispatch-day.sha256` | ⚠⚠ the copy's pin, written only from the real handoff. It is what makes a standalone build honest rather than merely possible |
 | `lib/day.ts` | that file, typed, with the lookups the screens use |
 | `lib/state.tsx` | the desk, in `localStorage`. A hard reload must not lose it |
 | `app/globals.css` | the Modernist sheet, as shipped by the console and the driver app |
