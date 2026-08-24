@@ -4,7 +4,7 @@
 **What it is:** the demo build of the TVSH **store goods-out tablet**, from
 `Transport-Material/design_handoff_dispatch_app/`.
 **Deadline:** presentation **Wednesday 26 August 2026**, department heads and directors.
-**Last updated:** 21 August 2026, **second pass after the internal review** — five screens, one
+**Last updated:** 24 August 2026, **after the internal review** — five screens, one
 linear flow, 108 assertions passing. The projector pass is not done, and nobody has walked beats
 1→13 across all three apps.*
 
@@ -42,10 +42,11 @@ them removes something:
 | **The flow is linear and one job at a time** | board → **verify** → **scan out** (only when a line is serialised) → **hand over**, with the three steps always on screen. It used to scan a whole truck's worth of lines on one screen, which is a spreadsheet, not a desk |
 | **The Scan button is on the line** | Every line in the basket carries its own control. It used to be one button at the foot acting on whichever line the app had decided was "in hand" — a queue the clerk cannot see and cannot argue with |
 | **The exceptions screen is dropped** | The block says everything on the screen where it happens |
+| **⚠⚠ Everything is signed on THIS tablet** | Wyne, 24 Aug. `D-05` used to say the driver accepted on his own phone. **He cannot** — the driver app has nine screens and none of them is `V-05 Accept custody`, so that device does not exist. A screen reporting a control nobody built is the worst defect class in this codebase. Both signatures — his for the load, the customer's at the counter — are captured on `T118`. The two-device split (TRP-002 §1.3) is now recorded as the **target** in `KOTLIN.md`, not shown as a fact |
 
 ⚠ **Nothing that had to survive was traded away for this.** The block still has no skip, the override
 is still dimmed and still names the grant, the collection lane is still first, `D-05` still has no
-signature pad, and scanned and typed still look different. §4 is unchanged.
+collection lane still first, and scanned and typed still look different.
 
 ---
 
@@ -67,14 +68,15 @@ Plus `/` sign in · `/consignment/[id]` (verify) · `/scan/[id]` · `/handover/[
 ```
 /board  →  tap a card  →  /consignment/[id]   verify: the right goods, count, undamaged
                        →  /scan/[id]          a Scan button on every serialised line
-                       →  /handover/[load]    seals, then he accepts on his own device
+                       →  /handover/[load]    seals, then he signs for the load, here
                           or /collection/[ref]  the same, with no truck in it
 ```
 
-⚠⚠ **Beat 7 is still half-built.** *"The driver accepts what the store scanned"* needs `V-05 Accept
-custody` at **his** end and the driver app has nine screens, none of which is that. The store half —
-`/handover/LD-000377` — is here, and it deliberately **has no signature pad on it**, because the
-whole point is that he signs on his own device. **Raise this before the rehearsal.**
+⚠⚠ **Beat 7 is a one-device handover in this demo.** *"The driver accepts what the store scanned"*
+wants `V-05 Accept custody` at **his** end, and the driver app has nine screens, none of which is
+that. So he signs on the dispatch tablet, witnessed by the clerk — which is both what the paper
+version does today and the only version this demo can show without lying. **`V-05` is still to
+build, and the two-device split is the point of building it.**
 
 ---
 
@@ -111,9 +113,11 @@ that line. A check nobody has seen fail is not a check.
    dimmed, and **names the grant the clerk does not hold**.
 2. **The collection lane is not the minor case.** First on the board, same width as the others.
    Roughly a third of consignments never see a truck.
-3. **No signature pad on `D-05`.** The driver accepts on his own terminal. A pad on the store's
-   tablet would let one person scan the load *and* accept it, which is the control that is missing
-   today.
+3. **A named person signs for the load, and the record says on whose device.** In this demo that is
+   `T118`, the dispatch tablet, witnessed by the clerk — because the driver has no screen to sign on
+   yet. ⚠⚠ **Do not let the screen claim a device that does not exist.** When `V-05 Accept custody`
+   is built, the signature moves to his terminal and the record follows it; until then the record is
+   honest about being one device and two people standing at one counter.
 4. **Two grades of a fact look different.** Scanned vs typed; a bound serial vs a counted quantity.
    Nothing rounds one up to the other.
 
@@ -223,7 +227,7 @@ appears on no dispatch screen.
 | S5 | `/board` — two tabs, cards | ✅ collection first; lanes measured; cards measured |
 | S6 | `/consignment/[id]` — **verify**, three looking-checks | ✅ the invoice is named, not drawn |
 | S7 | `/scan/[id]` — **the Scan button on the line**, and **the block** | ✅ no skip; override dimmed and named |
-| S8 | `/handover/[load]` — seals, the other device, the refusal | ✅ no signature pad, and it says why |
+| S8 | `/handover/[load]` — seals, his signature, the refusal | ✅ signed on T118; the accept gate needs seal **and** ink |
 | S9 | `/collection/[ref]` — both cases | ✅ ink asserted from canvas pixels |
 | S10 | **Rails stripped, sizes raised** — the internal review | ✅ measured: the tablet renders larger than its design pixels |
 | S11 | **Demo pass on the real projector, with the other two apps** | ☐ **not done, and it is not optional** |

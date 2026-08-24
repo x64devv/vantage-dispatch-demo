@@ -191,14 +191,77 @@ await go('/handover/LD-000377/');
   const seal = page.getByTestId('seal');
   eq('handover · sealing is inert while lines are outstanding', await seal.getAttribute('aria-disabled'), 'true');
   has('handover · ...and says why', await seal.innerText(), 'Cannot seal');
-  // ⚠⚠ No signature pad here, and the screen says why.
-  eq('handover · there is no signature pad', await page.locator('[data-tablet="screen"] [data-testid="signature"]').count(), 0);
-  has('handover · ...and it says why', t, 'He signs on his own phone');
+  /* ⚠⚠ The driver signs HERE. The driver app has no accept-custody screen, so a
+     screen claiming he signed on his own device would report a control nobody
+     has built. Everything is signed on this tablet. */
+  eq('handover · the driver signs on this tablet', await page.locator('[data-tablet="screen"] [data-testid="signature"]').count(), 1);
+  hasU('handover · ...and the pad is his, by name', t, 'T. Mukanya signs for the load');
+  has('handover · witnessed by the clerk on this terminal', t, 'Witnessed by R. Muparutsa on T118');
+  hasnt('handover · nothing claims a device that does not exist', t, 'his own phone');
+  hasnt('handover · ...nor his own terminal', t, 'his own device');
+  hasnt('handover · ...nor D204', t, 'D204');
   hasU('handover · the refusal is a real control', t, 'If he will not take it');
+  const accept = page.getByTestId('accept');
+  eq('handover · accepting is inert before the seal', await accept.getAttribute('aria-disabled'), 'true');
+  has('handover · ...and says which step is missing', await accept.innerText(), 'Seal the load first');
   await page.getByTestId('refuse-count').click();
   await page.waitForTimeout(120);
   has('handover · a refusal is recorded where both people are standing', await screenText(), 'Refused at the door');
   await shot('06-handover');
+}
+
+/* ── The driver's signature gate, walked for real ───────────────────────── */
+{
+  /* ⚠ Scan out every consignment on LD-000377 so the seal becomes possible, then
+     check that sealing alone is not enough — he has to sign. */
+  await go('/board/');
+  for (const cid of ['CN-VE-000418', 'CN-VE-000421', 'CN-VE-000424', 'CN-VE-000427', 'CN-VE-000429']) {
+    await go(`/consignment/${cid}/`);
+    for (const id of ['description', 'quantity', 'condition']) {
+      const cell = page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' });
+      if (await cell.count()) await cell.click();
+    }
+    await page.getByTestId('verify').click();
+    await page.waitForTimeout(140);
+    if (page.url().includes('/scan/')) {
+      /* ⚠ Every serialised line, not just line 1. CN-VE-000424 carries three of
+         them, and stopping after the first left the load un-sealable — which is
+         how this walk found its own bug. */
+      for (let i = 0; i < 12; i++) {
+        const buttons = page.locator('[data-testid^="scan-"]');
+        if ((await buttons.count()) === 0) break;
+        await buttons.first().click();
+        await page.waitForTimeout(90);
+      }
+    }
+  }
+  await go('/handover/LD-000377/');
+  const seal = page.getByTestId('seal');
+  eq('handover · sealing is live once every consignment is scanned out', await seal.getAttribute('aria-disabled'), null);
+  await seal.click();
+  await page.waitForTimeout(140);
+
+  const accept = page.getByTestId('accept');
+  eq('handover · accepting is still inert with no signature', await accept.getAttribute('aria-disabled'), 'true');
+  has('handover · ...and says so plainly', await accept.innerText(), 'He has not signed yet');
+
+  const canvas = page.getByTestId('signature');
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.55);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.62, box.y + box.height * 0.4, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForTimeout(90);
+
+  eq('handover · live once he has signed', await accept.getAttribute('aria-disabled'), null);
+  await accept.click();
+  await page.waitForTimeout(140);
+  const t = await screenText();
+  has('handover · custody accepted', t, 'Custody accepted');
+  has('handover · signed by the driver', t, 'T. Mukanya');
+  has('handover · on this tablet, not his', t, 'T118');
+  has('handover · the gate pass is raised', t, 'GP-VE-2026-08-20-0021');
+  await shot('09-handover-signed');
 }
 
 /* ── The collection ─────────────────────────────────────────────────────── */

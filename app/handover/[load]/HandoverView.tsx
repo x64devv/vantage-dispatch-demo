@@ -1,24 +1,28 @@
 'use client';
 
-/* Step 3 — HAND OVER. The store half of beat 7.
+/* Step 3 — HAND OVER, to the driver.
  *
- * ⚠⚠ THIS SCREEN HAS NO SIGNATURE PAD ON IT, AND THAT IS THE ARGUMENT.
- * The driver does not sign on the store's tablet. He accepts custody on his own
- * phone, which is a separate commissioned terminal with his own name on it — two
- * people, two devices, one serial. A pad here would let one person scan the load
- * AND accept it, which is exactly the control that is missing today: the driver
- * currently verifies his own load.
+ * ⚠⚠ THE DRIVER SIGNS HERE, ON THIS TABLET. Wyne's call, 24 August.
  *
- * ⚠ The Seal procedure exists in exactly one SOP (Van Assistant, Appendix V):
- * driver, assistant, dispatch clerk and security witness the doors closed
- * together, and the Vehicle Seal Form is signed by driver and security. This is
- * that procedure with the paper removed — not a new control.
+ * TRP-002 §1.3 wants the issuing side to scan and the receiving side to accept
+ * on his OWN device — two people, two devices, one serial. That is the right
+ * design and it is written down in `KOTLIN.md` as the target. It is **not
+ * built**: the driver app has nine screens and none of them is `V-05 Accept
+ * custody`. A screen here saying he signed on `D204` would be reporting a
+ * control nobody has, which is the worst defect class in this codebase.
+ *
+ * So both signatures in this demo — the driver's here and the customer's at the
+ * counter — are captured on `T118`, the same pad, and the demo is true end to
+ * end. ⚠ The Van Assistant SOP Appendix V already has driver, assistant,
+ * dispatch clerk and security witnessing the sealing together with one form
+ * between them, so one tablet is exactly how the paper version works today.
  */
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { load as loadById } from '@/lib/day';
+import { DESK, load as loadById } from '@/lib/day';
 import { loadReady, useDesk } from '@/lib/state';
+import Signature from '@/components/Signature';
 import { ACC, BG, Btn, Card, DIV, Fact, INK, Label, Mono, Note, Steps, Tag } from '@/components/ui';
 
 /* ⚠ Two reasons, chosen from a list rather than typed — the same rule as the
@@ -28,7 +32,7 @@ const REFUSALS = ['The count is short', 'A unit is damaged'];
 
 export default function HandoverView({ loadId }: { loadId: string }) {
   const router = useRouter();
-  const { s, sealLoad, handOver } = useDesk();
+  const { s, set, sealLoad, handOver } = useDesk();
   const [refused, setRefused] = useState<string | null>(null);
   const l = loadById(loadId);
 
@@ -36,6 +40,7 @@ export default function HandoverView({ loadId }: { loadId: string }) {
 
   const { cs, outstanding, blocked, ok } = loadReady(s, loadId);
   const sealed = !!s.sealed[loadId];
+  const ink = !!s.handoverSigInk[loadId];
   const handed = !!s.handedOver[loadId];
 
   const missing = blocked.length
@@ -83,7 +88,7 @@ export default function HandoverView({ loadId }: { loadId: string }) {
           </div>
         </div>
 
-        {/* ── Right: seals, then the other device ─────────────────────── */}
+        {/* ── Right: seals, then his signature ────────────────────────── */}
         <div className="scr" style={{ flex: 'none', width: 466, borderLeft: `2px solid ${DIV}`, padding: '22px 26px', overflowY: 'auto' }}>
           <Label>1 · Seals</Label>
           <div style={{ display: 'flex', gap: 12, margin: '12px 0 16px' }}>
@@ -108,32 +113,56 @@ export default function HandoverView({ loadId }: { loadId: string }) {
           <div style={{ height: 2, background: DIV, margin: '22px 0' }} />
 
           <div style={{ opacity: sealed ? 1 : 0.45 }}>
-            <Label>2 · He accepts, on his own device</Label>
             {handed ? (
-              <Card style={{ marginTop: 12, borderColor: INK }} padding={20}>
-                <div style={{ font: '800 22px Archivo, system-ui' }}>Custody accepted</div>
-                <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
-                  <Fact label="By" value={l.handover?.acceptedBy ?? '—'} size={19} />
-                  <Fact label="On terminal" value={`${l.handover?.acceptedOn} · ${l.handover?.acceptedAt}`} size={19} mono />
-                  <Fact label="Gate pass" value={l.gatePass ?? '—'} size={19} mono />
-                </div>
-              </Card>
+              <>
+                <Label>2 · Accepted</Label>
+                <Card style={{ marginTop: 12, borderColor: INK }} padding={20}>
+                  <div style={{ font: '800 22px Archivo, system-ui' }}>Custody accepted</div>
+                  <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
+                    <Fact label="Signed by" value={l.handover?.acceptedBy ?? '—'} size={19} />
+                    <Fact label="On terminal" value={`${l.handover?.acceptedOn} · ${l.handover?.acceptedAt}`} size={19} mono />
+                    <Fact label="Gate pass" value={l.gatePass ?? '—'} size={19} mono />
+                  </div>
+                </Card>
+              </>
             ) : (
               <>
-                <div className="pretty" style={{ fontSize: 17, lineHeight: 1.5, margin: '12px 0 14px', opacity: 0.82 }}>
-                  No signature pad on this screen. He signs on his own phone,{' '}
-                  <Mono>{l.handover?.acceptedOn}</Mono> — a different terminal with his own name on it.
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Label>2 · {l.driver.name} signs for the load</Label>
+                  {ink && <Tag tone="ink">Signed</Tag>}
                 </div>
-                <Btn testid="accept" style={{ width: '100%' }} center dim={!sealed} onClick={() => handOver(loadId)}>
-                  {sealed ? 'He accepts on D204' : 'Seal the load first'}
-                </Btn>
+                <div style={{ marginTop: 10, pointerEvents: sealed ? 'auto' : 'none' }}>
+                  <Signature
+                    height={150}
+                    inked={ink}
+                    onInk={() => set({ handoverSigInk: { ...s.handoverSigInk, [loadId]: true } })}
+                  />
+                </div>
+                <div style={{ fontSize: 15, opacity: 0.6, marginTop: 8 }}>
+                  Witnessed by {DESK.clerk.name} on {DESK.terminal.terminalNo}
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <Btn
+                    kind="primary"
+                    testid="accept"
+                    style={{ width: '100%' }}
+                    center
+                    dim={!sealed || !ink}
+                    onClick={() => handOver(loadId)}
+                  >
+                    {!sealed ? 'Seal the load first' : !ink ? 'He has not signed yet' : 'Hand the load over'}
+                  </Btn>
+                </div>
               </>
             )}
           </div>
 
-          <div style={{ height: 2, background: DIV, margin: '22px 0' }} />
+          {/* ⚠ Once he has taken it, "if he will not take it" is not an option any
+              more — a control that is no longer available must not sit there
+              looking available. */}
+          {!handed && <div style={{ height: 2, background: DIV, margin: '22px 0' }} />}
 
-          {refused ? (
+          {handed ? null : refused ? (
             <Note style={{ borderLeft: `6px solid ${ACC}`, background: BG }}>
               <strong style={{ fontFamily: 'Archivo, system-ui' }}>Refused at the door.</strong> {refused} —
               recorded with both names on it. The goods stay in this building.

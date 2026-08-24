@@ -56,6 +56,8 @@ export type DeskState = {
   /** consignments where a scan was blocked, and the exception ref raised */
   blocked: Record<string, string>;
   sealed: Record<string, boolean>;
+  /** ⚠ The driver's signature, captured HERE. See the note on handOver below. */
+  handoverSigInk: Record<string, boolean>;
   handedOver: Record<string, boolean>;
   collectionsDone: Record<string, boolean>;
   collectionSigInk: Record<string, boolean>;
@@ -102,6 +104,7 @@ export const initialState = (): DeskState => ({
   tab: 'ourDriver',
   blocked: {},
   sealed: {},
+  handoverSigInk: {},
   handedOver: {},
   collectionsDone: {},
   collectionSigInk: {},
@@ -186,6 +189,13 @@ export function DeskProvider({ children }: { children: ReactNode }) {
   const sealLoad: Ctx['sealLoad'] = (loadId) =>
     setS((prev) => ({ ...prev, sealed: { ...prev.sealed, [loadId]: true } }));
 
+  /* ⚠⚠ THE DRIVER SIGNS ON THIS TABLET. Wyne's call, 24 Aug. TRP-002 §1.3 wants
+     the receiving side to accept on his OWN device — but the driver app has nine
+     screens and none of them is `V-05 Accept custody`, so that device does not
+     exist yet. A screen claiming he signed on D204 would be reporting a control
+     nobody has built, which is the worst defect class in this codebase. One
+     tablet, two signatures, one demo that is true end to end. The two-device
+     split is the target in KOTLIN.md, not a fact on a screen. */
   const handOver: Ctx['handOver'] = (loadId) =>
     setS((prev) => ({ ...prev, handedOver: { ...prev.handedOver, [loadId]: true } }));
 

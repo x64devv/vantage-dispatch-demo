@@ -1,6 +1,11 @@
 'use client';
 
-/* The signature pad, on the tablet, for a customer collecting at the counter.
+/* The signature pad, on the tablet.
+ *
+ * ⚠ Used twice and it is the same pad both times: the driver signing for a load
+ * at the goods-out desk, and a customer signing at the counter. Wyne's call,
+ * 24 Aug — everything is signed on this device, because the driver app has no
+ * accept-custody screen to sign on.
  *
  * ⚠⚠ THE TRAP, and it cost the driver app an afternoon: the canvas backing store
  * is a fixed pixel size and the element is displayed at whatever width the layout

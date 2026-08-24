@@ -551,11 +551,11 @@
       "handover": {
         "acceptedAt": "07:36",
         "acceptedBy": "T. Mukanya",
-        "acceptedOn": "D204",
+        "acceptedOn": "T118",
         "issuedBy": "R. Muparutsa",
         "issuedOn": "T118",
         "sealFormSignedBy": ["T. Mukanya", "Security — G. Zvobgo"],
-        "_why": "⚠⚠ Two people, two devices, one serial (TRP-002 §1.3). The store issues on T118; the driver accepts on D204 and countersigns. Today the driver verifies his own load. The Van Assistant SOP Appendix V already requires driver, assistant, dispatch clerk and security to witness the sealing together — this is that procedure with the paperwork removed, not a new control."
+        "_why": "⚠⚠ THE DRIVER SIGNS ON THE DISPATCH TABLET, T118. Wyne's call, 24 Aug: TRP-002 §1.3 wants the issuing side to scan and the receiving side to accept on his OWN device — but the driver app has nine screens and none of them is `V-05 Accept custody`, so that second device does not exist. A demo screen that says he signed on D204 would be reporting a control nobody has built, which is the worst defect class in this codebase. So both signatures — the driver's here and the customer's at the counter — are captured on T118, and the two-device split is recorded as the TARGET in KOTLIN.md §3.5 rather than shown as a fact. ⚠ The Van Assistant SOP Appendix V already requires driver, assistant, dispatch clerk and security to witness the sealing together; this is that procedure with the paperwork removed, and one tablet is exactly how the paper version works today."
       },
       "state": "IN_TRANSIT"
     },
