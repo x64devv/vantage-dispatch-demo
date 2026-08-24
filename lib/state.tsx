@@ -6,162 +6,119 @@
  * ⚠ A hard reload must not lose the desk. Someone will refresh the browser
  * mid-demo, or the projector will renegotiate and Chrome will reload the tab.
  *
- * ⚠⚠ The dispatch tablet is ONLINE and the driver's phone is not. That asymmetry
- * is real and is the point: the store is on the shop's wifi, the driver is in a
- * truck. So this app's records leave immediately and say "Sent"; the driver's
- * queue and say "Queued". One estate, two honest states, never one blanket
- * offline mode.
+ * ⚠⚠ THE FLOW IS ONE CONSIGNMENT AT A TIME, and it is linear:
+ *
+ *     board  →  verify  →  scan out (only if a line is serialised)  →  hand over
+ *
+ * That is how a goods-out desk actually works: somebody wheels one job to the
+ * counter, you check it, you scan what carries a serial, and you give it to
+ * whoever is taking it. The earlier build scanned a whole truck's worth of lines
+ * on one screen, which is a spreadsheet, not a desk.
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { DAY, consignmentsOnLoad, exceptionFor, serialsFor, type CapturedBy } from './day';
+import { DAY, consignment, exceptionFor, serialsFor, type CapturedBy, type Consignment } from './day';
 
-export type TrailState = 'Sent' | 'Bound' | 'Blocked' | 'Held';
+/** ⚠ Three checks a person can make by looking, before anything is scanned:
+ *  description, quantity, condition. The fourth — the serial — is the scan
+ *  itself, and it cannot be answered by looking, so it is the next screen
+ *  rather than a fourth tick on this one. */
+export type CheckId = 'description' | 'quantity' | 'condition';
 
-export type TrailEntry = {
-  ref: string;
-  /** what was captured, in plain words */
-  detail: string;
-  /** ⚠ where it went. Every record names its destination. */
-  dest: string;
-  state: TrailState;
-};
+export const CHECKS: { id: CheckId; label: string; hint: string }[] = [
+  { id: 'description', label: 'The right goods', hint: 'Model number off the box, not off the screen.' },
+  { id: 'quantity', label: 'The right count', hint: 'A short load found here costs nothing.' },
+  { id: 'condition', label: 'Undamaged', hint: 'Screen, glass, panels and feet.' },
+];
 
-/** One row of the scan sheet: a consignment line, and what has happened to it. */
 export type ScanRow = {
   key: string;
   consignment: string;
   lineNo: number;
-  desc: string;
-  sku: string;
-  qty: number;
-  serialised: boolean;
-  unit: number;
-  /** serials bound so far on this line */
   serials: { serial: string; capturedBy: CapturedBy }[];
-  /** unserialised lines: confirmed by quantity and condition instead */
-  qtyConfirmed: boolean;
-  condition: 'Good' | 'Damaged' | null;
-  conditionPhoto: boolean;
   blocked: boolean;
 };
 
-export type CheckId = 'description' | 'quantity' | 'serial' | 'condition';
-
-/** ⚠ TRP-001 §6.1: four SEPARATE recorded answers, not one "checked" tick. The
- *  Fleet Manager SOP asks for all four at the load; the Loading Clerk's own
- *  warehouse check omits the serial entirely, which is why the highest-volume
- *  path in the business has the weakest check written down. */
-export const CHECKS: { id: CheckId; label: string; hint: string }[] = [
-  { id: 'description', label: 'Description matches the line', hint: 'Read the model number off the box, not off the screen.' },
-  { id: 'quantity', label: 'Quantity matches the line', hint: 'Count it. A short load found here costs nothing; found at a door it costs a day.' },
-  { id: 'serial', label: 'Serial captured', hint: 'Scanned from the unit itself. Typed is recorded as typed.' },
-  { id: 'condition', label: 'Condition recorded', hint: 'Anything other than Good makes the photograph mandatory.' },
-];
+/** ⚠ The board shows two of the three lanes. `carrier` is in the data and has no
+ *  tab — named as not built rather than deleted. */
+export type BoardTab = 'collection' | 'ourDriver';
 
 export type DeskState = {
   signedIn: boolean;
-  /** rows keyed by `${consignment}#${lineNo}` */
+  /** which board tab is showing */
+  tab: BoardTab;
+  /** the three looking-checks, per consignment */
+  checks: Record<string, Partial<Record<CheckId, 'yes' | 'no'>>>;
+  /** consignments whose verification is complete */
+  verified: Record<string, boolean>;
+  /** scan rows, keyed `${consignment}#${lineNo}` */
   rows: Record<string, ScanRow>;
-  /** the four checks for the line currently in hand, on the scan screen */
-  checks: Partial<Record<CheckId, 'yes' | 'no'>>;
-  /** which line the scan screen has in hand */
-  focus: string | null;
-  blockedOn: string | null;
+  /** consignments where a scan was blocked, and the exception ref raised */
+  blocked: Record<string, string>;
   sealed: Record<string, boolean>;
   handedOver: Record<string, boolean>;
-  driverSigInk: boolean;
   collectionsDone: Record<string, boolean>;
   collectionSigInk: Record<string, boolean>;
   collectionIdPhoto: Record<string, boolean>;
-  trail: TrailEntry[];
 };
 
-const LOAD = 'LD-000377';
-const SECOND = 'LD-000381';
+/* ⚠ The desk opens part-way through the morning, not empty. Stops 1–3 of
+ * LD-000377 were scanned out between 07:04 and 07:10 — an empty board at 07:12
+ * would be the lie. Those three are verified and bound; everything else waits. */
+const ALREADY_DONE = ['CN-VE-000402', 'CN-VE-000407', 'CN-VE-000411'];
 
-/** ⚠ The desk opens mid-scan, not empty. LD-000377 started at 07:04 and the
- *  demo picks it up at 07:12 with Nancy's television in hand — the first three
- *  units are already bound. An empty sheet at 07:12 would be the lie. */
-function seedRows(): Record<string, ScanRow> {
+function seed(): Pick<DeskState, 'rows' | 'verified' | 'checks'> {
   const rows: Record<string, ScanRow> = {};
-  for (const loadId of [LOAD, SECOND]) {
-    for (const c of consignmentsOnLoad(loadId)) {
-      for (const l of c.lines) {
-        rows[`${c.id}#${l.no}`] = {
-          key: `${c.id}#${l.no}`,
-          consignment: c.id,
-          lineNo: l.no,
-          desc: l.desc,
-          sku: l.sku,
-          qty: l.qty,
-          serialised: l.serialised,
-          unit: c.loadUnit ?? 0,
-          serials: [],
-          qtyConfirmed: false,
-          condition: null,
-          conditionPhoto: false,
-          blocked: false,
-        };
-      }
-    }
-  }
-  /* Units 1–3 of LD-000377 are done: stops 1, 2 and 3 were scanned 07:04–07:10. */
-  for (const cid of ['CN-VE-000402', 'CN-VE-000407', 'CN-VE-000411']) {
-    const c = consignmentsOnLoad(LOAD).find((x) => x.id === cid)!;
-    for (const l of c.lines) {
-      const r = rows[`${cid}#${l.no}`];
-      r.serials = serialsFor(cid, l.no).map((s) => ({ serial: s.serial, capturedBy: s.capturedBy }));
-      r.qtyConfirmed = true;
-      r.condition = 'Good';
-      r.conditionPhoto = serialsFor(cid, l.no).some((s) => s.conditionPhoto);
-    }
-  }
-  return rows;
-}
+  const verified: Record<string, boolean> = {};
+  const checks: DeskState['checks'] = {};
 
-const seedTrail = (): TrailEntry[] => [
-  {
-    ref: 'SA-000091441',
-    detail: 'Stop 1 · Defy 4-plate stove · #G-000004778112 scanned onto LD-000377 / 1, condition Good, photographed',
-    dest: 'Consignment line · Vantage Trans. Sales Entry',
-    state: 'Bound',
-  },
-  {
-    ref: 'SA-000091442 … 44',
-    detail: 'Stop 2 · Hisense 43" A4H × 3 · three serials scanned onto LD-000377 / 2',
-    dest: 'Consignment line · one row per unit',
-    state: 'Bound',
-  },
-];
+  for (const c of DAY.consignments) {
+    for (const l of c.lines) {
+      rows[`${c.id}#${l.no}`] = {
+        key: `${c.id}#${l.no}`,
+        consignment: c.id,
+        lineNo: l.no,
+        serials: [],
+        blocked: false,
+      };
+    }
+  }
+  for (const cid of ALREADY_DONE) {
+    verified[cid] = true;
+    checks[cid] = { description: 'yes', quantity: 'yes', condition: 'yes' };
+    const c = consignment(cid)!;
+    for (const l of c.lines) {
+      rows[`${cid}#${l.no}`].serials = serialsFor(cid, l.no).map((s) => ({
+        serial: s.serial,
+        capturedBy: s.capturedBy,
+      }));
+    }
+  }
+  return { rows, verified, checks };
+}
 
 export const initialState = (): DeskState => ({
   signedIn: false,
-  rows: seedRows(),
-  checks: {},
-  focus: null,
-  blockedOn: null,
+  tab: 'ourDriver',
+  blocked: {},
   sealed: {},
   handedOver: {},
-  driverSigInk: false,
   collectionsDone: {},
   collectionSigInk: {},
   collectionIdPhoto: {},
-  trail: seedTrail(),
+  ...seed(),
 });
 
-const KEY = 'vantage-dispatch-desk-v1';
+const KEY = 'vantage-dispatch-desk-v2';
 
 type Ctx = {
   s: DeskState;
-  set: (patch: Partial<DeskState> | ((s: DeskState) => Partial<DeskState>)) => void;
+  set: (patch: Partial<DeskState>) => void;
   reset: () => void;
   ready: boolean;
-  bindSerial: (rowKey: string, serial: string, capturedBy: CapturedBy) => void;
-  confirmQty: (rowKey: string) => void;
-  setCondition: (rowKey: string, condition: 'Good' | 'Damaged') => void;
-  takeConditionPhoto: (rowKey: string) => void;
-  blockLine: (loadId: string) => void;
+  answer: (cid: string, id: CheckId, v: 'yes' | 'no') => void;
+  verify: (cid: string) => void;
+  scanLine: (cid: string, lineNo: number, capturedBy: CapturedBy) => void;
   sealLoad: (loadId: string) => void;
   handOver: (loadId: string) => void;
   completeCollection: (ref: string) => void;
@@ -175,11 +132,10 @@ export function DeskProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const rawState = localStorage.getItem(KEY);
-      if (rawState) setS({ ...initialState(), ...(JSON.parse(rawState) as DeskState) });
+      const raw = localStorage.getItem(KEY);
+      if (raw) setS({ ...initialState(), ...(JSON.parse(raw) as DeskState) });
     } catch {
-      /* A corrupt or unavailable store is not an error worth showing a clerk;
-         the desk simply starts from the top. */
+      /* A corrupt or unavailable store is not an error worth showing a clerk. */
     }
     setReady(true);
   }, []);
@@ -189,187 +145,52 @@ export function DeskProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(KEY, JSON.stringify(s));
     } catch {
-      /* Private mode, quota, or a locked-down tablet. The demo still runs; it
-         just will not survive a reload. Nothing on screen claims otherwise. */
+      /* Private mode or a locked-down tablet. Nothing on screen claims otherwise. */
     }
   }, [s, ready]);
 
-  const set: Ctx['set'] = (patch) =>
-    setS((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }));
+  const set: Ctx['set'] = (patch) => setS((prev) => ({ ...prev, ...patch }));
 
-  const push = (prev: DeskState, entry: TrailEntry) => [entry, ...prev.trail];
+  const answer: Ctx['answer'] = (cid, id, v) =>
+    setS((prev) => ({ ...prev, checks: { ...prev.checks, [cid]: { ...prev.checks[cid], [id]: v } } }));
 
-  /* ── The bind ─────────────────────────────────────────────────────────
-     ⚠⚠ This is the act the whole module rests on: a physical unit becomes
-     attached to a customer. It writes the consignment line always, and the HTB
-     contract line only when there IS one — `Vantage HTB Contract Line."Serial
-     No."`, declared in the codebase and never once populated by shipped code,
-     because VantageContractBuilder.AddLine has no caller. A cash sale has no
-     contract line and the trail row says so out loud instead of going quiet. */
-  const bindSerial: Ctx['bindSerial'] = (rowKey, serial, capturedBy) =>
+  const verify: Ctx['verify'] = (cid) => setS((prev) => ({ ...prev, verified: { ...prev.verified, [cid]: true } }));
+
+  /* ⚠⚠ The bind. A physical unit becomes attached to a customer, here, at the
+     door — never at the till, because a cashier picking from a list of what the
+     system thinks is on the shelf is what makes serials untrustworthy.
+     ⚠ On CN-MW-000121 the picker has brought a unit Business Central holds as
+     sold. It stops. */
+  const scanLine: Ctx['scanLine'] = (cid, lineNo, capturedBy) =>
     setS((prev) => {
-      const r = prev.rows[rowKey];
-      if (!r || r.serials.some((x) => x.serial === serial)) return prev;
-      const c = DAY.consignments.find((x) => x.id === r.consignment)!;
-      const rows = {
-        ...prev.rows,
-        [rowKey]: {
-          ...r,
-          serials: [...r.serials, { serial, capturedBy }],
-          condition: r.condition ?? 'Good',
-        },
-      };
-      const dest = c.htb
-        ? 'Consignment line + HTB contract line'
-        : 'Consignment line · this sale is not on hire-to-buy';
+      const ex = DAY.exceptions.find((e) => e.consignment === cid && e.line === lineNo);
+      const key = `${cid}#${lineNo}`;
+      const row = prev.rows[key];
+      if (!row || row.blocked) return prev;
+
+      if (ex) {
+        return {
+          ...prev,
+          blocked: { ...prev.blocked, [cid]: ex.ref },
+          rows: { ...prev.rows, [key]: { ...row, blocked: true } },
+        };
+      }
+      const next = serialsFor(cid, lineNo)[row.serials.length];
+      if (!next) return prev;
       return {
         ...prev,
-        rows,
-        trail: push(prev, {
-          ref: `SERIAL ${serial}`,
-          detail:
-            `${r.desc} · bound to ${r.consignment} line ${r.lineNo}, load unit ${c.load} / ${r.unit} · ` +
-            `${capturedBy === 'Scanned' ? 'scanned' : 'typed'}, not ${capturedBy === 'Scanned' ? 'typed' : 'scanned'}`,
-          dest,
-          state: 'Bound',
-        }),
-      };
-    });
-
-  const confirmQty: Ctx['confirmQty'] = (rowKey) =>
-    setS((prev) => {
-      const r = prev.rows[rowKey];
-      if (!r || r.qtyConfirmed) return prev;
-      return {
-        ...prev,
-        rows: { ...prev.rows, [rowKey]: { ...r, qtyConfirmed: true, condition: r.condition ?? 'Good' } },
-        trail: push(prev, {
-          ref: `QTY ${r.consignment} / ${r.lineNo}`,
-          /* ⚠ An unserialised line is confirmed by quantity and condition. The
-             screen says which control it got, so nobody later reads a quantity
-             confirmation as if a serial had been scanned. */
-          detail: `${r.desc} · ${r.qty} confirmed by count · this line is not serialised, so no serial gate applies`,
-          dest: 'Consignment line · quantity and condition',
-          state: 'Sent',
-        }),
-      };
-    });
-
-  const setCondition: Ctx['setCondition'] = (rowKey, condition) =>
-    setS((prev) => {
-      const r = prev.rows[rowKey];
-      if (!r) return prev;
-      return { ...prev, rows: { ...prev.rows, [rowKey]: { ...r, condition } } };
-    });
-
-  const takeConditionPhoto: Ctx['takeConditionPhoto'] = (rowKey) =>
-    setS((prev) => {
-      const r = prev.rows[rowKey];
-      if (!r) return prev;
-      return {
-        ...prev,
-        rows: { ...prev.rows, [rowKey]: { ...r, conditionPhoto: true } },
-        trail: push(prev, {
-          ref: `LOAD-PHOTO ${r.consignment} / ${r.lineNo}`,
-          /* ⚠⚠ TRP-001 §6.6.2: the photograph at the door proves the state the
-             goods arrived in. Only a PAIR answers "was that dent ours?" — and the
-             load photograph is the half nobody asks for. It is also the Scratched
-             /Damaged Form digitised, which protects the crew, not just TVSH. */
-          detail: `${r.desc} · condition ${r.condition ?? 'Good'}, photographed before loading`,
-          dest: 'PROOF_MEDIA · evidence proxy sent, full resolution on wifi',
-          state: 'Held',
-        }),
-      };
-    });
-
-  /* ⚠⚠ The block. Not a warning, not a confirm dialog with a "continue anyway".
-     The line stops, an Exception is raised with a name on it, and it is on the
-     console's queue ageing before the clerk has put the tablet down. */
-  const blockLine: Ctx['blockLine'] = (loadId) =>
-    setS((prev) => {
-      const ex = exceptionFor(loadId);
-      if (!ex || prev.blockedOn === loadId) return prev;
-      const key = `${ex.consignment}#${ex.line}`;
-      return {
-        ...prev,
-        blockedOn: loadId,
-        rows: { ...prev.rows, [key]: { ...prev.rows[key], blocked: true } },
-        trail: push(prev, {
-          ref: ex.ref,
-          detail: `${ex.title} · ${ex.serial} · ${ex.detail} · raised ${ex.raisedAt} by ${ex.raisedBy.name} · fault ${ex.fault}`,
-          dest: 'Exceptions queue, ageing · fault TVSH',
-          state: 'Blocked',
-        }),
+        rows: { ...prev.rows, [key]: { ...row, serials: [...row.serials, { serial: next.serial, capturedBy }] } },
       };
     });
 
   const sealLoad: Ctx['sealLoad'] = (loadId) =>
-    setS((prev) => {
-      if (prev.sealed[loadId]) return prev;
-      const l = DAY.loads.find((x) => x.id === loadId)!;
-      return {
-        ...prev,
-        sealed: { ...prev.sealed, [loadId]: true },
-        trail: push(prev, {
-          ref: `SEALS ${l.seals.join(' · ')}`,
-          detail: `${loadId} closed and sealed at ${l.sealedAt ?? '—'} · witnessed by ${l.handover?.sealFormSignedBy.join(' and ') ?? 'the clerk'}`,
-          dest: 'Load · custody moves to the transit bin',
-          state: 'Sent',
-        }),
-      };
-    });
+    setS((prev) => ({ ...prev, sealed: { ...prev.sealed, [loadId]: true } }));
 
-  /* ⚠⚠ Two people, two devices, one serial. The store issues on T118; the driver
-     accepts on D204 and countersigns. Today the driver verifies his own load. */
   const handOver: Ctx['handOver'] = (loadId) =>
-    setS((prev) => {
-      if (prev.handedOver[loadId]) return prev;
-      const l = DAY.loads.find((x) => x.id === loadId)!;
-      return {
-        ...prev,
-        handedOver: { ...prev.handedOver, [loadId]: true },
-        trail: push(prev, {
-          ref: l.gatePass ?? `GP-${loadId}`,
-          detail:
-            `${loadId} handed to ${l.driver.name} on ${l.handover?.acceptedOn} at ${l.handover?.acceptedAt} · ` +
-            `issued by ${l.handover?.issuedBy} on ${l.handover?.issuedOn} · two devices, one serial`,
-          dest: 'Gate pass · custody accepted on the driver’s own device',
-          state: 'Sent',
-        }),
-      };
-    });
+    setS((prev) => ({ ...prev, handedOver: { ...prev.handedOver, [loadId]: true } }));
 
   const completeCollection: Ctx['completeCollection'] = (ref) =>
-    setS((prev) => {
-      if (prev.collectionsDone[ref]) return prev;
-      const col = DAY.collections.find((c) => c.ref === ref)!;
-      const c = DAY.consignments.find((x) => x.id === col.consignment)!;
-      const entries: TrailEntry[] = [];
-      for (const sc of col.serialScans) {
-        entries.push({
-          ref: `SERIAL ${sc.serial}`,
-          detail: `${c.lines.find((l) => l.no === sc.line)?.desc} · bound to ${c.id} line ${sc.line} at the counter · scanned, not typed · no truck involved`,
-          dest: c.htb ? 'Consignment line + HTB contract line' : 'Consignment line · this sale is not on hire-to-buy',
-          state: 'Bound',
-        });
-      }
-      entries.push({
-        ref: col.ref,
-        detail:
-          `${c.customer.name} collected ${c.lines.length} line${c.lines.length === 1 ? '' : 's'} at ${col.at} · ` +
-          `ID ${col.receiver.idNo} read and photographed · signed at the counter · ` +
-          (col.serialScans.length
-            ? `${col.serialScans.length} serial${col.serialScans.length === 1 ? '' : 's'} bound`
-            : 'no serial — this consignment carries no serialised line'),
-        dest: 'Collection note · same control, no vehicle',
-        state: 'Sent',
-      });
-      return {
-        ...prev,
-        collectionsDone: { ...prev.collectionsDone, [ref]: true },
-        trail: [...entries.reverse(), ...prev.trail],
-      };
-    });
+    setS((prev) => ({ ...prev, collectionsDone: { ...prev.collectionsDone, [ref]: true } }));
 
   const reset = () => {
     setS(initialState());
@@ -382,7 +203,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
 
   return (
     <DeskCtx.Provider
-      value={{ s, set, reset, ready, bindSerial, confirmQty, setCondition, takeConditionPhoto, blockLine, sealLoad, handOver, completeCollection }}
+      value={{ s, set, reset, ready, answer, verify, scanLine, sealLoad, handOver, completeCollection }}
     >
       {children}
     </DeskCtx.Provider>
@@ -395,39 +216,52 @@ export function useDesk() {
   return c;
 }
 
-/* ── The gates ────────────────────────────────────────────────────────────
-   ⚠ Disabled means opacity .45 AND a label naming what is missing. Never a dead
-   control, never a tooltip. */
+/* ── Where a consignment is, in one word ──────────────────────────────────
+   ⚠ Four states and no more. A board that carries a dozen shades of progress
+   is a board nobody reads across a room. */
+export type Stage = 'Waiting' | 'Verified' | 'Scanned' | 'Blocked' | 'Gone';
 
-export const rowDone = (r: ScanRow) =>
-  r.blocked ? false : r.serialised ? r.serials.length >= r.qty && r.condition !== null : r.qtyConfirmed && r.condition !== null;
-
-/** ⚠ Condition anything other than Good makes the photograph mandatory. */
-export const rowPhotoRequired = (r: ScanRow) => r.condition === 'Damaged';
-export const rowOk = (r: ScanRow) => rowDone(r) && (!rowPhotoRequired(r) || r.conditionPhoto);
-
-export function loadProgress(s: DeskState, loadId: string) {
-  const rows = Object.values(s.rows).filter((r) => {
-    const c = DAY.consignments.find((x) => x.id === r.consignment);
-    return c?.load === loadId;
-  });
-  const done = rows.filter(rowOk).length;
-  const serialsBound = rows.reduce((n, r) => n + r.serials.length, 0);
-  const blocked = rows.filter((r) => r.blocked).length;
-  return { rows, done, total: rows.length, serialsBound, blocked };
+export function stageOf(s: DeskState, c: Consignment): Stage {
+  if (s.blocked[c.id]) return 'Blocked';
+  if (c.load && s.handedOver[c.load]) return 'Gone';
+  const col = DAY.collections.find((x) => x.consignment === c.id);
+  if (col && s.collectionsDone[col.ref]) return 'Gone';
+  if (scanComplete(s, c)) return 'Scanned';
+  if (s.verified[c.id]) return 'Verified';
+  return 'Waiting';
 }
 
-/** Seal → hand over: every line accounted for, and nothing blocked. */
-export const canSeal = (s: DeskState, loadId: string) => {
-  const p = loadProgress(s, loadId);
-  return p.done === p.total && p.blocked === 0;
-};
+export const checksAnswered = (s: DeskState, cid: string) =>
+  CHECKS.filter((c) => s.checks[cid]?.[c.id]).length;
 
-export const sealMissing = (s: DeskState, loadId: string) => {
-  const p = loadProgress(s, loadId);
-  if (p.blocked) return `${p.blocked} line blocked — the exception has to be answered first`;
-  const left = p.total - p.done;
-  return left ? `${left} line${left === 1 ? '' : 's'} not yet accounted for` : '';
-};
+export const anyCheckNo = (s: DeskState, cid: string) =>
+  CHECKS.some((c) => s.checks[cid]?.[c.id] === 'no');
 
-export const sentCount = (s: DeskState) => s.trail.filter((t) => t.state === 'Held').length;
+/** Every serialised line has as many serials bound as it has units. */
+export function scanComplete(s: DeskState, c: Consignment) {
+  if (!s.verified[c.id]) return false;
+  return c.lines
+    .filter((l) => l.serialised)
+    .every((l) => (s.rows[`${c.id}#${l.no}`]?.serials.length ?? 0) >= l.qty);
+}
+
+export const hasSerialisedLine = (c: Consignment) => c.lines.some((l) => l.serialised);
+
+export function scanTally(s: DeskState, c: Consignment) {
+  const units = c.lines.filter((l) => l.serialised).reduce((n, l) => n + l.qty, 0);
+  const bound = c.lines.reduce((n, l) => n + (s.rows[`${c.id}#${l.no}`]?.serials.length ?? 0), 0);
+  return { bound, units };
+}
+
+/** ⚠ The load can be sealed when every consignment on it has been scanned out
+ *  and nothing on it is blocked. Dimmed controls say which of the two it is. */
+export function loadReady(s: DeskState, loadId: string) {
+  /* ⚠ In load-unit order. Unsorted, the sheet listed unit 4 above unit 1, which
+     is the one thing a load sheet may not do. */
+  const cs = DAY.consignments
+    .filter((c) => c.load === loadId)
+    .sort((a, b) => (a.loadUnit ?? 0) - (b.loadUnit ?? 0));
+  const outstanding = cs.filter((c) => !scanComplete(s, c));
+  const blocked = cs.filter((c) => s.blocked[c.id]);
+  return { cs, outstanding, blocked, ok: outstanding.length === 0 && blocked.length === 0 };
+}

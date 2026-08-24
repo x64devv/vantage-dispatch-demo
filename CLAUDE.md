@@ -4,14 +4,15 @@
 **What it is:** the demo build of the TVSH **store goods-out tablet**, from
 `Transport-Material/design_handoff_dispatch_app/`.
 **Deadline:** presentation **Wednesday 26 August 2026**, department heads and directors.
-**Last updated:** 21 August 2026 — *six screens built and driven in a real browser, 141 assertions
-passing. The projector pass is not done, and nobody has walked beats 1→13 across all three apps.*
+**Last updated:** 21 August 2026, **second pass after the internal review** — five screens, one
+linear flow, 108 assertions passing. The projector pass is not done, and nobody has walked beats
+1→13 across all three apps.*
 
 ---
 
 ## 1. What this is, and what it is not
 
-A **six-screen Next.js tablet app**, static export, all state client-side, no server. It is the third
+A **five-screen Next.js tablet app**, static export, all state client-side, no server. It is the third
 app of a three-app module; its siblings are `XPOS/vantage-transport-console/` (desktop) and
 `XPOS/vantage-driver-app/` (phone), both built 20 August.
 
@@ -27,6 +28,27 @@ cable out. That is worth knowing on the day.
 
 ---
 
+## 1a. ⚠⚠ What the internal review changed, 21 August
+
+The first build was legible on a laptop and overwhelming in a room. Six changes, and every one of
+them removes something:
+
+| | |
+|---|---|
+| **Both demo rails are gone** | The left rail of design assumptions, the projector note, the beats note, and the whole right-hand **live record trail**. Everything they said is said out loud by whoever is presenting. A screen that explains itself in prose is a screen nobody reads |
+| **The tablet fills the window** | With the rails gone it scales **up** as well as down — about 1.3× its design pixels on a 1800px screen, 1.5× capped. One removed `Math.min(1, …)` |
+| **Every size went up** | Card titles 27px, body 17–22px, buttons 68px tall at 19px, the running count 54px. Nothing below 13px |
+| **The board is two tabs, not three lanes** | Awaiting collection · awaiting our driver. The carrier lane is in the data and off the board (§7) |
+| **The flow is linear and one job at a time** | board → **verify** → **scan out** (only when a line is serialised) → **hand over**, with the three steps always on screen. It used to scan a whole truck's worth of lines on one screen, which is a spreadsheet, not a desk |
+| **The Scan button is on the line** | Every line in the basket carries its own control. It used to be one button at the foot acting on whichever line the app had decided was "in hand" — a queue the clerk cannot see and cannot argue with |
+| **The exceptions screen is dropped** | The block says everything on the screen where it happens |
+
+⚠ **Nothing that had to survive was traded away for this.** The block still has no skip, the override
+is still dimmed and still names the grant, the collection lane is still first, `D-05` still has no
+signature pad, and scanned and typed still look different. §4 is unchanged.
+
+---
+
 ## 2. What it fills
 
 `XPOS/vantage-driver-app/CLAUDE.md` §12, 20 August: *"⚠⚠ **Beats 4, 5 and 6 have no screen.**"* These
@@ -35,10 +57,19 @@ are those three.
 | Beat | Screen | Route |
 |---|---|---|
 | **4** | SD-1 the goods-out board | `/board` |
-| **5** | SD-2 scan out, and the block | `/scan/LD-000377` then `/scan/LD-000381` |
+| **5** | SD-2 scan out, and the block | `/consignment/CN-MW-000121` → `/scan/CN-MW-000121` |
 | **6** | SD-3 a customer collects | `/collection/COL-VE-2026-08-20-0007` |
 
-Plus `/` sign in · `/consignment/[id]` · `/handover/[load]` · `/exceptions`.
+Plus `/` sign in · `/consignment/[id]` (verify) · `/scan/[id]` · `/handover/[load]`.
+
+**The running order through the app**, and it is one path:
+
+```
+/board  →  tap a card  →  /consignment/[id]   verify: the right goods, count, undamaged
+                       →  /scan/[id]          a Scan button on every serialised line
+                       →  /handover/[load]    seals, then he accepts on his own device
+                          or /collection/[ref]  the same, with no truck in it
+```
 
 ⚠⚠ **Beat 7 is still half-built.** *"The driver accepts what the store scanned"* needs `V-05 Accept
 custody` at **his** end and the driver app has nine screens, none of which is that. The store half —
@@ -75,7 +106,7 @@ that line. A check nobody has seen fail is not a check.
 
 ## 4. ⚠⚠ The four things that must survive implementation
 
-1. **The block, with no skip button.** `app/scan/[load]/ScanView.tsx`. A serial BC does not hold here
+1. **The block, with no skip button.** `app/scan/[id]/ScanView.tsx`. A serial BC does not hold here
    stops the line — not a warning, not a confirm with a *continue anyway*. The override is present,
    dimmed, and **names the grant the clerk does not hold**.
 2. **The collection lane is not the minor case.** First on the board, same width as the others.
@@ -101,8 +132,9 @@ app ship, unchanged except that Archivo is vendored in `app/fonts/` rather than 
 quantities, money, times, document numbers, registrations. `MONO` in `components/ui.tsx`. Columns of
 figures must not jitter.
 
-**56px minimum touch target** (TRP-002 §4) — a device used standing up, in a stock room, in gloves.
-The driver app's 44px is a phone in one hand; this is not that.
+**68px primary controls, 64px yes/no, 56px secondary** — TRP-002 §4 asks for 56 minimum on a device
+used standing up, in a stock room, in gloves. The driver app's 44px is a phone in one hand; this is
+not that.
 
 **Focus** is `2px solid var(--color-accent)`, offset 2px — never the browser default.
 
@@ -186,17 +218,15 @@ appears on no dispatch screen.
 |---|---|---|
 | S1 | `dispatch-day.json` — **the data pass, before any screen** | ✅ 14 consignments, 2 loads, 11 binds, 1 exception, 2 collections |
 | S2 | `derive-run.mjs` + `known-divergences.json` — the derivation, and the refusal | ✅ 147/149; fails on a mutated serial |
-| S3 | Scaffold, tablet frame, rails, `?bare=1`, `localStorage` | ✅ builds and exports 27 static routes |
-| S4 | `/` sign in and desk & device | ✅ PIN gate names what is missing |
-| S5 | `/board` — SD-1, three lanes, the ageing rows, the foot figures | ✅ lanes measured equal; foot strip measured on screen |
-| S6 | `/consignment/[id]` — the pin grade and the attached document | ✅ the invoice is named, not drawn |
-| S7 | `/scan/[load]` — SD-2, the four checks, the bind, **the block** | ✅ no skip; override dimmed and named |
-| S8 | `/handover/[load]` — seals, gate pass, the other device, the refusal | ✅ no signature pad, and it says why |
-| S9 | `/collection/[ref]` — SD-3, both cases | ✅ ink asserted from canvas pixels |
-| S10 | `/exceptions` — D-12 | ✅ the console's wording, verbatim |
+| S3 | Scaffold, tablet frame, `localStorage` | ✅ builds and exports 26 static routes |
+| S4 | `/` sign in | ✅ PIN gate names what is missing |
+| S5 | `/board` — two tabs, cards | ✅ collection first; lanes measured; cards measured |
+| S6 | `/consignment/[id]` — **verify**, three looking-checks | ✅ the invoice is named, not drawn |
+| S7 | `/scan/[id]` — **the Scan button on the line**, and **the block** | ✅ no skip; override dimmed and named |
+| S8 | `/handover/[load]` — seals, the other device, the refusal | ✅ no signature pad, and it says why |
+| S9 | `/collection/[ref]` — both cases | ✅ ink asserted from canvas pixels |
+| S10 | **Rails stripped, sizes raised** — the internal review | ✅ measured: the tablet renders larger than its design pixels |
 | S11 | **Demo pass on the real projector, with the other two apps** | ☐ **not done, and it is not optional** |
-
----
 
 ## 8. Traps
 
@@ -210,6 +240,10 @@ appears on no dispatch screen.
   and the pin is missing or does not match → refuse. ⚠ The pin is only ever written when the real
   handoff is on disk, so editing the copy alone still fails by name — the control survives, it just
   stopped catching the wrong thing.
+- ⚠ **A steps bar that stopped a third of the way across** read as an unfinished underline. It is
+  full width with one bottom rule now. Found by looking at a screenshot.
+- ⚠ **A load sheet listed unit 4 above unit 1**, because `loadReady` filtered without sorting. That is
+  the one thing a load sheet may not do.
 - ⚠⚠ **`1fr` is not `minmax(0, 1fr)`.** The board's three lanes were `1fr 1fr 1fr` and a long goods
   description silently widened its own lane — making the **collection lane the narrow one**, which is
   the exact opposite of what that screen exists to say. Found by measuring the computed columns.
@@ -249,37 +283,36 @@ appears on no dispatch screen.
 | Handoff written, then built from | ✅ |
 | Data pass (§3) before any screen | ✅ |
 | Derivation proven to refuse | ✅ mutated a serial, watched it fail |
-| Screens built | ✅ 6 of 6 |
+| Screens built | ✅ 5 of 5, after the review |
 | Seen in a real browser | ✅ headless Chromium, and screenshots read by eye |
 | Seen on a projector | ☐ **no** |
 | Deployed | ⚠ 21 Aug: pushed to `github.com/x64devv/vantage-dispatch-demo`, and **every Vercel build failed** on the guard above. Fixed and proven both ways; **the fix has not been pushed** |
 
 **What was actually run**, on 21 August, in a Linux container:
 
-- `npm install`, `npm run build` — compiles clean, exports **27 static routes**.
+- `npm install`, `npm run build` — compiles clean, exports **26 static routes**.
 - `node scripts/derive-run.mjs --write` — **147 of 149** derived values found verbatim in
   `vantage-driver-app/lib/run.ts`, 8 not modelled by the driver app, 2 known divergences. Then the
   same script run against a deliberately mutated serial, which **failed on exactly that line** —
   because a check nobody has seen fail is not a check.
-- `node serve.mjs`, then `node scripts/verify.mjs` — **141 assertions, 141 pass, 0 fail**, covering:
-  every route renders with zero page and console errors · the PIN gate naming what is missing · three
-  board lanes of **measured** equal width · the ageing row and the 3% penalty · the foot figures
-  **measured** to be on screen · the fiscal document named rather than drawn · the pin grade and what
-  it is worth · the real §SD-4 SKUs · the four checks gating the bind and saying how many are left ·
-  the running count **measured** to survive four taps · typed entry offered as a different grade ·
-  the block quoting TRP-004 §4 **verbatim** · no *skip*, no *continue anyway*, anywhere inside the
-  tablet · the override inert and naming its grant, on two screens · the seal gate naming what is
-  outstanding · **no signature element on the handover screen** · the refusal as a real control ·
-  the collection gate naming both missing pieces · **the signature ink read back out of the canvas
-  pixels, and no ink where the pointer never went** · the unserialised collection saying so and
-  showing no serial · no `<img>` anywhere inside the tablet · the console's exception wording
-  verbatim · `?bare=1` dropping the rails · a hard reload keeping the desk.
-- The standalone case proven **both ways**, on a copy of this repo with no sibling directory: it
-  builds and prints the pinned checksum it verified against, and — with one serial altered in
-  `lib/dispatch-day.json` — it **refuses with both digests on screen**. A check nobody has seen fail
-  is not a check, and this one had never been seen succeed in the environment that actually runs it.
-- Screenshots of all eleven states, **looked at** — which is how the lane-width bug, the scrolling
-  count, the below-the-fold foot strip and the `CUSTOMERDELIVERY` enum were found.
+- `node serve.mjs`, then `node scripts/verify.mjs` — **108 assertions, 108 pass, 0 fail**, covering:
+  every route renders with zero page and console errors · **the removed furniture asserted absent by
+  name** (design assumptions, the projector note, the beats note, the live record trail) · **the
+  tablet measured to render larger than its 1280px design width** · exactly two board tabs with
+  collection first and no carrier lane · cards **measured** to be card-sized · the ageing row and the
+  3% penalty · three checks and not four, with no serial check on the verify screen · the way on
+  inert and naming how many are left · **the primary action measured to be on screen** · one Scan
+  button, on the serialised line, and none elsewhere · the running count **measured** to stay put ·
+  typed entry offered as a different grade · the block quoting TRP-004 §4 **verbatim** plus the new
+  line that it passed every check a person can make by looking · no *skip*, no *continue anyway*
+  anywhere inside the tablet · the override inert and naming its grant · the seal gate naming what is
+  outstanding · **no signature element on the handover screen** · the refusal as a real control · the
+  collection gate naming both missing pieces · **the signature ink read back out of the canvas
+  pixels, and no ink where the pointer never went** · the unserialised job skipping the scan step
+  entirely · **`/exceptions` returning 404** · a hard reload keeping the desk.
+- Screenshots of all eight states, **looked at** — which is how the unfinished steps rule, the
+  out-of-order load sheet, the clipped typed-entry fallback and the doubled receiver label were
+  found. Four defects in the first pass came the same way.
 
 **What has NOT been verified:**
 

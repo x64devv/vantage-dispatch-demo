@@ -1,169 +1,174 @@
 'use client';
 
-/* D-01 / SD-1 — the goods-out board. Beat 4.
+/* The goods-out board. Beat 4.
  *
- * Three lanes: awaiting collection · awaiting our driver · awaiting a carrier.
+ * ⚠⚠ TWO TABS — internal review, 21 August. It was three lanes side by side and
+ * it read as a spreadsheet. One queue at a time, in cards big enough to work
+ * from standing up.
  *
- * ⚠⚠ The collection lane is FIRST and is the same width as the others. Roughly a
- * third of consignments never see a truck, and a collection has no gate pass, no
- * seals, no driver who signed for the load and no debrief — so it is where
- * shrinkage is easiest today and nobody is looking. Making it the narrow column
- * on the right would quietly say the opposite of what the screen is for.
+ * ⚠ Awaiting collection is the FIRST tab. Roughly a third of consignments never
+ * see a truck, and a collection has no gate pass, no seals, no driver who signed
+ * for the load and no debrief — so it is where shrinkage is easiest today and
+ * nobody is looking. Putting it second would quietly say the opposite.
  *
- * ⚠ The awaiting-collection lane AGES. TVSH already prints on every invoice
- * "all goods not collected within 2 weeks will attract a 3% of invoice penalty",
- * and no system watches that clock. One row at twelve days, one at fifteen and
- * past it. Visible without hunting, and not shouting.
+ * ⚠ A card carries five things and no more: who, where, what, how many lines,
+ * and where it has got to. Everything else is on the consignment itself, one tap
+ * away. The earlier build put six tags on every row and nobody could read any of
+ * them across a room.
  */
 
 import { useRouter } from 'next/navigation';
-import { BRANCH, DAY, LANES, consignmentsInLane, type Consignment } from '@/lib/day';
-import { useDesk } from '@/lib/state';
-import { ACC, AC7, AC8, DIV, MONO, Mono, Note, SURF, Tag } from '@/components/ui';
+import { consignmentsInLane, type Consignment } from '@/lib/day';
+import { stageOf, useDesk, type BoardTab, type Stage } from '@/lib/state';
+import { ACC, AC7, AC8, BG, DIV, INK, MONO, Mono, SURF, Tag } from '@/components/ui';
+
+/* ⚠ Only the two lanes a store works from a desk. `carrier` still exists in the
+   day and has no tab — see the note on LANES in lib/day.ts. */
+const TABS: { key: BoardTab; label: string }[] = [
+  { key: 'collection', label: 'Awaiting collection' },
+  { key: 'ourDriver', label: 'Awaiting our driver' },
+];
 
 export default function Board() {
   const router = useRouter();
-  const { s } = useDesk();
+  const { s, set } = useDesk();
+  const rows = consignmentsInLane(s.tab);
 
-  /* ⚠ height, not minHeight: the foot strip carries SD-1's own figures
-     (waiting · out today · collected · failed) and it was sitting below the
-     fold, where a strip that reports the day is worth nothing. The lanes scroll
-     inside themselves instead. Found by looking at a screenshot. */
   return (
-    <div style={{ padding: '18px 24px 20px', display: 'flex', flexDirection: 'column', gap: 12, height: '100%', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-        <div style={{ font: '800 17px Archivo, system-ui' }}>
-          {BRANCH.code} {BRANCH.name} · {DAY.boardClock}
-        </div>
-        <div className="pretty" style={{ fontSize: 12.5, opacity: 0.65, lineHeight: 1.4 }}>
-          Nancy Muhoni&rsquo;s sale cleared at the till at 12:19 yesterday and was on this board seconds
-          later, with the fiscal invoice attached. Nobody emailed anybody.
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16, flex: 1, minHeight: 0 }}>
-        {LANES.map((lane) => {
-          const rows = consignmentsInLane(lane.key);
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Tabs — 76px, and the count is part of the label. */}
+      <div style={{ flex: 'none', display: 'flex', borderBottom: `2px solid ${DIV}` }} data-testid="tabs">
+        {TABS.map((t) => {
+          const on = s.tab === t.key;
+          const n = consignmentsInLane(t.key).length;
           return (
-            <div key={lane.key} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <div style={{ borderBottom: `2px solid ${DIV}`, paddingBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <div style={{ font: '800 15px Archivo, system-ui' }}>{lane.title}</div>
-                  <Mono style={{ font: '600 13px Archivo, system-ui', opacity: 0.6 }}>{rows.length}</Mono>
-                </div>
-                <div style={{ fontSize: 11.5, opacity: 0.6, marginTop: 3 }}>{lane.sub}</div>
-              </div>
-              <div className="scr" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-                {rows.map((c) => (
-                  <Row key={c.id} c={c} onOpen={() => router.push(`/consignment/${c.id}`)} scanned={!!s.sealed[c.load ?? '']} />
-                ))}
-              </div>
-            </div>
+            <button
+              key={t.key}
+              type="button"
+              data-testid={`tab-${t.key}`}
+              onClick={() => set({ tab: t.key })}
+              className={on ? undefined : 'tap8'}
+              style={{
+                flex: 1,
+                minHeight: 76,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 14,
+                border: 0,
+                borderBottom: on ? `5px solid ${ACC}` : '5px solid transparent',
+                background: 'transparent',
+                color: on ? INK : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+                font: `${on ? 800 : 600} 22px Archivo, system-ui`,
+                cursor: 'pointer',
+                borderRadius: 0,
+              }}
+            >
+              {t.label}
+              <Mono style={{ font: '700 22px Archivo, system-ui', opacity: on ? 0.75 : 0.5 }}>{n}</Mono>
+            </button>
           );
         })}
       </div>
 
-      {/* Foot strip — small, factual, mono figures. */}
-      <div style={{ borderTop: `2px solid ${DIV}`, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 22 }}>
-        <div style={{ display: 'flex', gap: 18, ...MONO, fontSize: 12.5 }} data-testid="counters">
-          <span>waiting {DAY.counters.waiting}</span>
-          <span>out today {DAY.counters.outToday}</span>
-          <span>collected {DAY.counters.collected}</span>
-          <span>failed {DAY.counters.failed}</span>
-        </div>
-        <div className="pretty" style={{ fontSize: 11.5, opacity: 0.6, lineHeight: 1.4, flex: 1 }}>
-          Branch totals, not a count of the rows above — this branch has more of each than fit on one
-          screen, and a foot strip that silently counted only what is visible would be worse than one
-          that says what it is.
+      <div className="scr" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 26px 26px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 18 }}>
+          {rows.map((c) => (
+            <BoardCard key={c.id} c={c} stage={stageOf(s, c)} onOpen={() => router.push(`/consignment/${c.id}`)} />
+          ))}
         </div>
       </div>
-
-      <Note style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        <span style={{ font: '800 11px Archivo, system-ui', letterSpacing: '.1em', textTransform: 'uppercase', color: AC7, flex: 'none', paddingTop: 2 }}>
-          On this board
-        </span>
-        <span className="pretty">
-          <strong>CN-AV-000120</strong> was sold at Avondale and the goods are here, so it is on both
-          branches&rsquo; boards — a promise on theirs, a job to pick on ours. Today that hand-off is a
-          telephone call. And <strong>CN-WK-000041</strong> has been waiting fifteen days, which is past
-          the fourteen the invoice already prints.
-        </span>
-      </Note>
     </div>
   );
 }
 
-function Row({ c, onOpen, scanned }: { c: Consignment; onOpen: () => void; scanned: boolean }) {
+const STAGE_TONE: Record<Stage, { tone: 'neutral' | 'accent' | 'ink' | 'outline'; label: string }> = {
+  Waiting: { tone: 'outline', label: 'To verify' },
+  Verified: { tone: 'neutral', label: 'Verified' },
+  Scanned: { tone: 'ink', label: 'Scanned out' },
+  Blocked: { tone: 'accent', label: 'Blocked' },
+  Gone: { tone: 'neutral', label: 'Left the building' },
+};
+
+function BoardCard({ c, stage, onOpen }: { c: Consignment; stage: Stage; onOpen: () => void }) {
   const overdue = c.penaltyDue != null;
-  const ageing = c.heldDays != null && c.heldDays >= 10;
-  const crossStore = c.sellingBranch !== BRANCH.code;
+  const st = STAGE_TONE[stage];
 
   return (
     <button
       type="button"
       onClick={onOpen}
       className="tappable"
-      data-testid={`row-${c.id}`}
+      data-testid={`card-${c.id}`}
       style={{
         display: 'block',
         width: '100%',
         textAlign: 'left',
-        padding: '11px 10px 12px',
-        border: 0,
-        borderBottom: `1px solid ${DIV}`,
-        borderLeft: overdue ? `3px solid ${ACC}` : '3px solid transparent',
-        background: 'transparent',
+        padding: '20px 22px',
+        border: `2px solid ${stage === 'Blocked' ? ACC : DIV}`,
+        borderLeft: overdue ? `8px solid ${ACC}` : `2px solid ${stage === 'Blocked' ? ACC : DIV}`,
+        background: stage === 'Gone' ? SURF : BG,
         cursor: 'pointer',
         color: 'inherit',
         borderRadius: 0,
-        minHeight: 56,
+        minHeight: 172,
+        opacity: stage === 'Gone' ? 0.6 : 1,
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
-        <Mono style={{ font: '600 12.5px Archivo, system-ui' }}>{c.id}</Mono>
-        <span style={{ font: '600 10px Archivo, system-ui', letterSpacing: '.08em', textTransform: 'uppercase', opacity: 0.5 }}>
-          {c.tender === 'None' ? 'Transfer' : c.tender}
-        </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              font: '800 27px/1.15 Archivo, system-ui',
+              letterSpacing: '-.02em',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {c.customer.name}
+          </div>
+          <div style={{ font: '600 18px Archivo, system-ui', opacity: 0.62, marginTop: 5 }}>
+            {c.address.suburb === '—' ? 'Collecting at the counter' : c.address.suburb}
+          </div>
+        </div>
+        <Tag tone={st.tone} style={{ flex: 'none' }}>{st.label}</Tag>
       </div>
-      <div style={{ font: '600 14px Archivo, system-ui', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {c.customer.name}
+
+      <div
+        className="pretty"
+        style={{
+          fontSize: 17,
+          lineHeight: 1.4,
+          marginTop: 14,
+          maxHeight: 48,
+          overflow: 'hidden',
+          color: 'color-mix(in srgb, var(--color-text) 78%, transparent)',
+        }}
+      >
+        {c.lines.map((l) => l.desc).join(' · ')}
       </div>
-      <div style={{ fontSize: 11.5, opacity: 0.65, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {c.address.suburb === '—' ? 'Collecting at the counter' : c.address.suburb} ·{' '}
-        {c.lines.map((l) => l.desc).join(', ')}
-      </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Mono style={{ fontSize: 11, opacity: 0.6 }}>
-          {c.lines.length} line{c.lines.length === 1 ? '' : 's'}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
+        <Mono style={{ fontSize: 16, opacity: 0.6 }}>
+          {c.id} · {c.lines.length} line{c.lines.length === 1 ? '' : 's'}
         </Mono>
-        {/* ⚠ Small marks, not badges: an enclosed truck and two people to carry are
-            facts a picker needs at a glance, and they are the two the planner's
-            capacity check cannot compute because TVSH holds no dimensions. */}
-        {c.needs.enclosedTruck && <Tag tone="outline">Enclosed</Tag>}
-        {c.needs.twoPerson && <Tag tone="outline">2 crew</Tag>}
-        {c.lines.some((l) => l.serialised) && <Tag tone="neutral">Serialised</Tag>}
-        {crossStore && <Tag tone="accent">Sold at {c.sellingBranch}</Tag>}
-        {c.carrier && <Tag tone="neutral">{c.carrier.name}</Tag>}
-        {scanned && c.load && <Tag tone="ink">Sealed</Tag>}
+        {/* ⚠ The ageing figure is the only extra a collection card carries, and it
+            is the reason this lane exists: TVSH prints a 3% penalty at fourteen
+            days on every invoice and nothing has ever watched that clock. */}
+        {c.heldDays != null && (
+          <Mono
+            style={{
+              fontSize: 16,
+              marginLeft: 'auto',
+              font: `${overdue ? 700 : 600} 16px Archivo, system-ui`,
+              color: overdue ? AC8 : c.heldDays >= 10 ? AC7 : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
+            }}
+          >
+            {overdue ? `${c.heldDays} days · 3% penalty due` : `held ${c.heldDays} day${c.heldDays === 1 ? '' : 's'}`}
+          </Mono>
+        )}
       </div>
-      {c.heldDays != null && (
-        <div
-          style={{
-            marginTop: 7,
-            fontSize: 11.5,
-            ...MONO,
-            color: overdue ? AC8 : ageing ? AC7 : 'color-mix(in srgb, var(--color-text) 55%, transparent)',
-          }}
-        >
-          held {c.heldDays} day{c.heldDays === 1 ? '' : 's'}
-          {overdue ? ` · ${c.penaltyDue!.pct}% penalty due` : c.collectionDueBy ? ` · due by ${c.collectionDueBy}` : ''}
-        </div>
-      )}
-      {c.window && c.window !== '—' && (
-        <div style={{ marginTop: 7, fontSize: 11.5, ...MONO, opacity: 0.55 }}>
-          promised {c.promisedDate} · {c.window}
-        </div>
-      )}
     </button>
   );
 }

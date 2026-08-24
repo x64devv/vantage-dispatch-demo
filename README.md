@@ -6,7 +6,15 @@
 > `Transport-Material/design_handoff_dispatch_app/KOTLIN.md`.
 
 The **store goods-out tablet** for TVSH Transport: beats 4, 5 and 6 of the thirteen-beat running
-order for the presentation on Wednesday 26 August 2026. Its siblings are
+order for the presentation on Wednesday 26 August 2026.
+
+One linear flow, one job at a time:
+
+```
+/board  →  tap a card  →  /consignment/[id]   verify
+                       →  /scan/[id]          a Scan button on every serialised line
+                       →  /handover/[load]    or /collection/[ref]
+``` Its siblings are
 `../vantage-transport-console/` (the planner's desktop) and `../vantage-driver-app/` (the driver's
 phone).
 
@@ -24,7 +32,9 @@ npm start          # http://localhost:4174/   (zero-dependency static server, no
 and the JavaScript never load. `npm start` runs `serve.mjs`, which is Node's own `http` module and
 nothing else — it works on a demo laptop with no network and no `npx`.
 
-**`?bare=1`** drops the demo rails so the tablet goes full-screen on a projector.
+⚠ There are no demo rails any more — the internal review took them out on 21 August, along with the
+live record trail. The tablet fills the window and scales up to 1.5× its design pixels, which is
+where most of the legibility came from.
 
 ### Deploy it
 
@@ -67,11 +77,11 @@ npm run verify     # drive the exported app in a real browser and assert (needs 
 | `app/globals.css` | the Modernist sheet, as shipped by the console and the driver app |
 | `app/fonts/` | Archivo, vendored. ⚠ A laptop with no network otherwise falls back to `system-ui` and the whole thing changes character |
 | `scripts/derive-run.mjs` | ⭐ the derivation, and the check that refuses |
-| `scripts/verify.mjs` | 141 browser assertions, including reading ink back out of the signature canvas |
+| `scripts/verify.mjs` | 108 browser assertions, including reading ink back out of the signature canvas and measuring that the tablet renders larger than its design width |
 | `shots/` | screenshots from the last verify run |
 
-**Six screens:** `/` sign in · `/board` the goods-out board · `/consignment/[id]` · `/scan/[load]` the
-scan and the block · `/handover/[load]` · `/collection/[ref]` · `/exceptions`.
+**Five screens:** `/` sign in · `/board` two tabs of cards · `/consignment/[id]` verify ·
+`/scan/[id]` the scan and the block · `/handover/[load]` and `/collection/[ref]`.
 
 `Transport-Material/design_handoff_dispatch_app/SCREENS.md` specifies each one. `CLAUDE.md` in this
 directory records what was actually run and what was not.

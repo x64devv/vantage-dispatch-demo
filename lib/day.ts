@@ -143,6 +143,11 @@ export const DESK = DAY.desk;
 export const consignment = (id: string) => DAY.consignments.find((c) => c.id === id);
 export const load = (id: string) => DAY.loads.find((l) => l.id === id);
 export const collectionByRef = (ref: string) => DAY.collections.find((c) => c.ref === ref);
+/** ⚠ Not every consignment in the collection lane has a collection record:
+ *  two of them are still waiting for the customer to walk in, which is the
+ *  ordinary state of that lane and not a gap in the fixture. */
+export const collectionFor = (consignmentId: string) =>
+  DAY.collections.find((c) => c.consignment === consignmentId);
 
 export const consignmentsOnLoad = (loadId: string) =>
   DAY.consignments.filter((c) => c.load === loadId).sort((a, b) => (a.stopSeq ?? 0) - (b.stopSeq ?? 0));
@@ -183,6 +188,11 @@ export const PIN_GRADE: Record<PinGrade, { label: string; note: string; rank: 0 
   NotRequired: { label: 'Not required', note: 'Collected at the counter — there is no delivery address.', rank: 0 },
 };
 
+/* ⚠⚠ TWO LANES ON THE BOARD — internal review, 21 August. `carrier` still exists
+   in the day (CN-VE-000125 is a real hired-carrier job and TRP-002 §3 gives it
+   D-07) but it has no tab in this build, because three columns of small rows was
+   the thing that read as a spreadsheet. It is named in the handoff as not built
+   rather than deleted from the data. */
 export const LANES: { key: Lane; title: string; sub: string }[] = [
   {
     key: 'collection',

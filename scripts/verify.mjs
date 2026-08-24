@@ -1,17 +1,14 @@
 /* verify.mjs — drive the exported app in a real browser and assert.
  *
- *   npm run build && node serve.mjs &   then   npm run verify
+ *   npm run build && npm start &   then   npm run verify
  *
  * ⚠⚠ "It builds" is not "it works". Every defect found in the Vantage build so
- * far was found by a person using the product, so this walks the demo the way
- * the demo is walked, clicks the things that will be clicked, and reads values
- * back out of the DOM — including reading pixels back out of the signature
- * canvas, because a signature that draws in the wrong place is invisible to any
- * assertion that only looks at the markup.
+ * far was found by a person using the product, so this walks the flow the way
+ * the demo is walked and reads values back out of the DOM — including pixels
+ * back out of the signature canvas, because ink in the wrong place is invisible
+ * to any assertion that only looks at markup.
  *
- * ⚠ THE COPY CHECKS RUN INSIDE [data-tablet="screen"] ONLY. The demo rails quote
- * sentences the app must never say; a check that read the whole page would find
- * them there and be wrong. Same trap the driver app hit.
+ * ⚠ Copy checks run inside [data-tablet="screen"] only.
  */
 
 import { chromium } from 'playwright';
@@ -23,16 +20,12 @@ const SHOTS = 'shots';
 
 let pass = 0;
 const fails = [];
-const ok = (what, cond) => {
-  if (cond) pass++;
-  else fails.push(what);
-};
+const ok = (what, cond) => { if (cond) pass++; else fails.push(what); };
 const eq = (what, got, want) => ok(`${what} — got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`, got === want);
 const has = (what, hay, needle) => ok(`${what} — missing: ${needle}`, String(hay).includes(needle));
 const hasnt = (what, hay, needle) => ok(`${what} — must not contain: ${needle}`, !String(hay).includes(needle));
-/* ⚠ Tags, grades and trail destinations are uppercased by the design system, so
-   innerText returns them uppercased. Copy that is READ ALOUD is asserted
-   verbatim with has(); labels the stylesheet shouts are asserted with hasU(). */
+/* ⚠ Tags and labels are uppercased by the stylesheet, so innerText shouts them.
+   Copy that is READ ALOUD is asserted verbatim with has(); shouted labels with hasU(). */
 const hasU = (what, hay, needle) =>
   ok(`${what} — missing: ${needle}`, String(hay).toUpperCase().includes(String(needle).toUpperCase()));
 
@@ -44,197 +37,180 @@ const page = await ctx.newPage();
 
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
+/* ⚠ One 404 is deliberate: the check below that /exceptions is gone. Everything
+   else is a real error and must be zero. */
+let expect404 = false;
 page.on('console', (m) => {
-  if (m.type() === 'error') errors.push(m.text());
+  if (m.type() !== 'error') return;
+  if (expect404 && m.text().includes('404')) return;
+  errors.push(m.text());
 });
 
-const go = async (path) => {
-  await page.goto(BASE + path, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(120);
-};
+const go = async (p) => { await page.goto(BASE + p, { waitUntil: 'networkidle' }); await page.waitForTimeout(140); };
 const screenText = () => page.locator('[data-tablet="screen"]').innerText();
+const shot = (n) => page.screenshot({ path: `${SHOTS}/${n}.png` });
 
-/* ⚠ "It is on the page" is not "you can see it". Two things scrolled out of the
-   tablet in the first browser pass — the running count and the board's own foot
-   figures — and no text assertion could tell. This measures. */
+/* ⚠ "It is on the page" is not "you can see it". This measures. */
 async function visible(what, testid) {
   const el = await page.getByTestId(testid).boundingBox();
   const scr = await page.locator('[data-tablet="screen"]').boundingBox();
-  const inside = !!el && !!scr && el.y >= scr.y - 1 && el.y + el.height <= scr.y + scr.height + 1;
-  ok(`${what} — is on screen without scrolling`, inside);
+  ok(`${what} — on screen without scrolling`,
+    !!el && !!scr && el.y >= scr.y - 1 && el.y + el.height <= scr.y + scr.height + 1);
 }
-const shot = (name) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false });
 
-/* ── 1. Sign in ─────────────────────────────────────────────────────────── */
-await go('/');
+/* ── The furniture the review asked to be removed ───────────────────────── */
+await go('/board/');
 {
-  const t = await page.locator('body').innerText();
-  has('sign-in names the branch', t, 'Village Walk Electrical');
-  has('sign-in names the terminal', t, '101 / T118');
-  has('sign-in is honest about being a demo', t, 'This is a demo build');
-  // ⚠ Disabled means dimmed AND labelled.
-  const btn = page.getByTestId('signin');
-  eq('sign-in button is inert before a PIN', await btn.getAttribute('aria-disabled'), 'true');
-  has('...and says what is missing', await btn.innerText(), 'Enter your PIN');
-  for (const d of ['4', '1', '1', '8']) await page.getByRole('button', { name: d, exact: true }).click();
-  eq('PIN pad fills', (await page.getByTestId('pin').innerText()).length, 4);
-  await shot('01-signin');
-  await page.getByTestId('signin').click();
-  await page.waitForURL('**/board/**');
+  const body = await page.locator('body').innerText();
+  hasnt('no design-assumptions rail', body, 'What this design assumes');
+  hasnt('no projector note', body, '?bare=1');
+  hasnt('no beats note', body, 'running order');
+  hasnt('no live record trail', body, 'Live record trail');
+  hasnt('...nor its heading', body, 'Everything the driver does');
+  hasnt('no "not built here" rail note', body, 'Not built here');
+  // ⚠ The tablet now uses the whole window and scales UP rather than down.
+  const w = await page.locator('[data-tablet="screen"]').evaluate((e) => e.getBoundingClientRect().width);
+  ok(`the tablet renders larger than its design pixels — measured ${Math.round(w)}px for a 1280px screen`, w > 1280);
 }
 
-/* ── 2. The board ───────────────────────────────────────────────────────── */
+/* ── The board: two tabs, cards ─────────────────────────────────────────── */
 {
   const t = await screenText();
-  has('board · collection lane', t, 'Awaiting collection');
-  has('board · driver lane', t, 'Awaiting our driver');
-  has('board · carrier lane', t, 'Awaiting a carrier');
-  has('board · the counters strip', t, 'waiting 11');
-  has('board · the ageing row past 14 days', t, '3% penalty due');
-  hasU('board · the cross-store row', t, 'Sold at AV');
-  has('board · Nancy is on it', t, 'Nancy Muhoni');
-  has('board · the collection that carries a serial', t, 'Simba Mhlanga');
+  has('board · the collection tab', t, 'Awaiting collection');
+  has('board · the driver tab', t, 'Awaiting our driver');
+  hasnt('board · the carrier lane is gone', t, 'Awaiting a carrier');
+  eq('board · exactly two tabs', await page.locator('[data-testid^="tab-"]').count(), 2);
+  // ⚠ Collection is first. It is not the minor case.
+  const first = await page.locator('[data-testid^="tab-"]').first().getAttribute('data-testid');
+  eq('board · collection is the first tab', first, 'tab-collection');
 
-  // ⚠ The collection lane must not be the narrow column. Three equal columns.
-  const widths = await page.locator('[data-tablet="screen"] [data-testid^="row-"]').first().evaluate(() => {
-    const cols = document.querySelectorAll('[data-tablet="screen"] [style*="grid-template-columns"]');
-    const board = [...cols].find((c) => getComputedStyle(c).gridTemplateColumns.split(' ').length === 3);
-    return getComputedStyle(board).gridTemplateColumns.split(' ').map((x) => Math.round(parseFloat(x)));
-  });
-  ok(`board · three lanes of equal width — got ${widths.join(' / ')}`, new Set(widths).size === 1);
-  await visible('board · the foot figures', 'counters');
-  await shot('02-board');
-}
-
-/* ── 3. The consignment, and the fiscal document ────────────────────────── */
-await go('/consignment/CN-VE-000418/');
-{
-  const t = await screenText();
-  has('consignment · the fiscal signature', t, 'D498-C19F-E480-D38A');
-  has('consignment · the customer reference', t, 'VE01/0033736');
-  // ⚠⚠ The rule: attach the invoice, never re-render it. The panel says so.
-  has('consignment · the document is named, not drawn', t, 'The PDF as ZIMRA signed it');
-  has('consignment · and says why nothing is drawn', t, 'a re-rendered invoice is precisely what the rule forbids');
-  // ⚠ The pin grade, and what it means.
-  has('consignment · pin grade is the lowest', await page.getByTestId('pin-grade').innerText(), 'Salesperson');
-  has('consignment · and says what that is worth', t, 'Nobody has stood on it');
-  // The three lines, with the SKUs from the material.
-  has('consignment · the television', t, 'OB-MP-GB-301071066');
-  has('consignment · the bracket SKU from §SD-4', t, 'OB-MP-GB-801000067');
-  has('consignment · the home theatre SKU from §SD-4', t, 'OB-MP-GB-431520183');
-  has('consignment · the bound serial', t, '#G-000004791204');
-  hasU('consignment · scanned, not typed', t, 'Scanned');
-  has('consignment · money at the door is not a balance', t, 'it is not a balance');
-  await shot('03-consignment');
-}
-
-/* ── 4. Scan out, going well ────────────────────────────────────────────── */
-await go('/scan/LD-000377/');
-{
-  // ⚠ The desk opens mid-scan. Units 1–3 are already bound; an empty sheet at
-  //   07:12 would be the lie.
-  const count = await page.getByTestId('count').innerText();
-  eq('scan · opens mid-load', count.trim(), '3 of 13');
-  has('scan · and how many serials are already bound', await screenText(), '4 of 10');
-  const t = await screenText();
-  has('scan · the last accepted serial', t, '#G-000004779338');
-  hasU('scan · the camera is labelled a simulation', t, 'Camera · simulated');
-  has('scan · the line in hand is Nancy’s television', t, 'CTV Samsung 85" QA85Q7FAAUXKE');
-
-  // The four checks, four separate answers.
-  const scanBtn = page.getByTestId('scan');
-  eq('scan · bind is inert before the checks', await scanBtn.getAttribute('aria-disabled'), 'true');
-  has('scan · ...and says how many are left', await scanBtn.innerText(), '4 left');
-  for (const id of ['description', 'quantity', 'serial', 'condition']) {
-    await page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' }).click();
-  }
-  eq('scan · bind becomes live once all four are answered', await scanBtn.getAttribute('aria-disabled'), null);
-  // ⚠⚠ The count must still be there after four taps. It was not, at first.
-  await visible('scan · the running count, after answering the checks', 'count');
-  await shot('04-scan-checks');
-
-  // ⚠ Assert this BEFORE the bind: afterwards the line in hand is the bracket,
-  //   which is unserialised, and the typed-entry control is correctly absent.
-  has('scan · typed entry is offered and labelled', await screenText(), 'Type the serial instead — recorded as typed');
-
-  await scanBtn.click();
+  await page.getByTestId('tab-collection').click();
   await page.waitForTimeout(120);
-  const t2 = await screenText();
-  has('scan · Nancy’s serial is now bound', t2, '#G-000004791204');
-  eq('scan · the count advanced', (await page.getByTestId('count').innerText()).trim(), '4 of 13');
-  // The trail row, in the rail, naming where it went.
-  const rail = await page.locator('body').innerText();
-  hasU('trail · the bind names the consignment line', rail, 'Consignment line · this sale is not on hire-to-buy');
-  await shot('05-scan-bound');
+  const tc = await screenText();
+  has('board · the ageing row past fourteen days', tc, '3% penalty due');
+  has('board · a collection card', tc, 'Simba Mhlanga');
+
+  await page.getByTestId('tab-ourDriver').click();
+  await page.waitForTimeout(120);
+  has('board · Nancy is on the driver tab', await screenText(), 'Nancy Muhoni');
+  // Big cards, not rows.
+  const h = await page.getByTestId('card-CN-VE-000418').evaluate((e) => e.getBoundingClientRect().height);
+  ok(`board · cards are card-sized — measured ${Math.round(h)}px`, h > 180);
+  await shot('01-board');
 }
 
-/* ── 5. The block ───────────────────────────────────────────────────────── */
-await go('/scan/LD-000381/');
+/* ── Step 1: a card opens verification ──────────────────────────────────── */
+await page.getByTestId('card-CN-VE-000418').click();
+await page.waitForURL('**/consignment/CN-VE-000418/**');
 {
-  for (const id of ['description', 'quantity', 'serial', 'condition']) {
+  const t = await screenText();
+  has('verify · the three steps are on screen', t, 'Verify');
+  has('verify · ...and where it goes', t, 'Hand over');
+  has('verify · the goods', t, 'CTV Samsung 85" QA85Q7FAAUXKE');
+  has('verify · the real §SD-4 bracket SKU', t, 'OB-MP-GB-801000067');
+  has('verify · the pin grade', await page.getByTestId('pin-grade').innerText(), 'Salesperson');
+  has('verify · the invoice is named, not drawn', t, 'a re-rendered invoice is what the rule forbids');
+  // ⚠ The serial is NOT a check on this screen — it cannot be answered by looking.
+  eq('verify · three checks, not four', await page.locator('[data-testid^="check-"]').count(), 3);
+  hasnt('verify · no serial check here', t, 'Serial captured');
+
+  const btn = page.getByTestId('verify');
+  eq('verify · the way on is inert', await btn.getAttribute('aria-disabled'), 'true');
+  has('verify · ...and says how many are left', await btn.innerText(), '3 checks left');
+  await visible('verify · the primary action', 'verify');
+  await shot('02-verify');
+
+  for (const id of ['description', 'quantity', 'condition']) {
     await page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' }).click();
   }
-  await page.getByTestId('scan').click();
-  await page.waitForTimeout(150);
+  eq('verify · becomes live once all three are answered', await btn.getAttribute('aria-disabled'), null);
+  has('verify · ...and names the next step', await btn.innerText(), 'scan the serials');
+  await btn.click();
+  await page.waitForURL('**/scan/CN-VE-000418/**');
+}
+
+/* ── Step 2: a Scan button on the line ──────────────────────────────────── */
+{
+  const t = await screenText();
+  eq('scan · the count starts at zero of one', (await page.getByTestId('count').innerText()).trim(), '0 of 1');
+  await visible('scan · the running count', 'count');
+  hasU('scan · the camera is labelled a simulation', t, 'Camera · simulated');
+  // ⚠⚠ The control is ON the line, one per serialised line, and nowhere else.
+  eq('scan · one Scan button, on the serialised line', await page.locator('[data-testid^="scan-"]').count(), 1);
+  has('scan · the unserialised lines say why they have none', t, 'Not serialised — confirmed by count at verification');
+  has('scan · typed entry is offered and labelled', t, 'recorded as typed');
+
+  const onward = page.getByTestId('onward');
+  eq('scan · the way on is inert until it is bound', await onward.getAttribute('aria-disabled'), 'true');
+  has('scan · ...and says how many are left', await onward.innerText(), '1 serial still to scan');
+  await shot('03-scan');
+
+  await page.getByTestId('scan-1').click();
+  await page.waitForTimeout(140);
+  const t2 = await screenText();
+  has('scan · the serial is bound', t2, '#G-000004791204');
+  hasU('scan · scanned, not typed', t2, 'Scanned');
+  eq('scan · the count advanced', (await page.getByTestId('count').innerText()).trim(), '1 of 1');
+  has('scan · ...and the way on names the driver', await onward.innerText(), 'Hand to the driver');
+  await shot('04-scan-bound');
+}
+
+/* ── The block ──────────────────────────────────────────────────────────── */
+await go('/consignment/CN-MW-000121/');
+{
+  for (const id of ['description', 'quantity', 'condition']) {
+    await page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' }).click();
+  }
+  await page.getByTestId('verify').click();
+  await page.waitForURL('**/scan/CN-MW-000121/**');
+  await page.getByTestId('scan-1').click();
+  await page.waitForTimeout(160);
+
   const t = await screenText();
   // ⚠⚠ Verbatim from TRP-004 §4 and the console. Do not paraphrase.
   has('block · the sentence, verbatim', t, 'This freezer was sold on 21 June and sent to Kwekwe. Fetch the loading clerk before continuing.');
   has('block · the serial', t, '#G-000004652985');
   has('block · the invoice it was sold on', t, '410233');
-  has('block · the exception reference the console renders', t, 'EX-000029114');
-  has('block · raised at 07:31 by T. Mukanya', t, '07:31');
-  has('block · fault is a billing field, chosen from a list', t, 'fault TVSH');
-  has('block · the trip is still allowed to leave', t, 'One blocked line does not ground a truck');
-
-  // ⚠⚠ NO SKIP. The override exists, is a separate grant, and is not held.
+  has('block · the reference the console renders', t, 'EX-000029114');
+  // ⚠ The point the new flow makes: it passed every check a person can make.
+  has('block · it passed the looking-checks', t, 'passed every check a person can make by looking');
+  has('block · the truck still goes', t, 'one blocked line does not ground it');
   hasnt('block · there is no skip', t, 'Skip');
   hasnt('block · and no continue-anyway', t, 'Continue anyway');
   const ov = page.getByTestId('override');
   eq('block · the override is inert', await ov.getAttribute('aria-disabled'), 'true');
-  has('block · ...and names the grant that would open it', await ov.innerText(), 'Serial Mismatch Override');
-  await shot('06-block');
-
-  // The sheet row for that line reads Blocked, not Waiting.
-  hasU('block · the sheet row says blocked', await page.getByTestId('sheet-CN-MW-000121#1').innerText(), 'Blocked');
+  has('block · ...and names the grant', await ov.innerText(), 'Serial Mismatch Override');
+  await shot('05-block');
 }
 
-/* ── 6. Hand to the driver ──────────────────────────────────────────────── */
+/* ── Step 3: hand to the driver ─────────────────────────────────────────── */
 await go('/handover/LD-000377/');
 {
-  const seal = page.getByTestId('seal');
-  // Lines are still outstanding on LD-000377 (the demo bound one of them).
-  eq('handover · sealing is inert while lines are outstanding', await seal.getAttribute('aria-disabled'), 'true');
-  has('handover · ...and says how many', await seal.innerText(), 'not yet accounted for');
   const t = await screenText();
-  has('handover · the seal numbers', t, 'Z-114882');
-  has('handover · the second seal', t, 'Z-114883');
-  // ⚠⚠ No signature pad on this screen, and the screen says why.
-  eq('handover · there is no signature pad here', await page.locator('[data-tablet="screen"] [data-testid="signature"]').count(), 0);
+  has('handover · the seals', t, 'Z-114882');
+  const seal = page.getByTestId('seal');
+  eq('handover · sealing is inert while lines are outstanding', await seal.getAttribute('aria-disabled'), 'true');
+  has('handover · ...and says why', await seal.innerText(), 'Cannot seal');
+  // ⚠⚠ No signature pad here, and the screen says why.
+  eq('handover · there is no signature pad', await page.locator('[data-tablet="screen"] [data-testid="signature"]').count(), 0);
   has('handover · ...and it says why', t, 'He signs on his own phone');
-  has('handover · the driver’s half is not built, and it says so', t, 'His half is not built');
-  // ⚠ The disagreement is a real control, not a sentence about one.
-  hasU('handover · refusal is an available action', t, 'If he will not take it');
-  has('handover · ...with reasons from a list', t, 'The count is short — a line is not on the truck');
-  await shot('07-handover');
-  await page.getByTestId('refuse-the').click();
-  await page.waitForTimeout(100);
+  hasU('handover · the refusal is a real control', t, 'If he will not take it');
+  await page.getByTestId('refuse-count').click();
+  await page.waitForTimeout(120);
   has('handover · a refusal is recorded where both people are standing', await screenText(), 'Refused at the door');
-  has('handover · ...and the goods do not travel', await screenText(), 'The goods stay in this building');
+  await shot('06-handover');
 }
 
-/* ── 7. The collection that carries a serial ────────────────────────────── */
+/* ── The collection ─────────────────────────────────────────────────────── */
 await go('/collection/COL-VE-2026-08-20-0007/');
 {
   const t = await screenText();
   has('collection · the receiver', t, 'Simba Mhlanga');
-  has('collection · the ID number', t, '63-1774209-M-18');
   hasU('collection · no vehicle', t, 'No vehicle');
   has('collection · the serial bound at a counter', t, '#G-000004776031');
-  has('collection · the write it makes', t, 'Vantage Trans. Sales Entry');
   has('collection · the paper it replaces', t, 'Name of Driver');
-  // ⚠⚠ No photograph of an identity document anywhere.
-  has('collection · the ID slot is a labelled placeholder', t, 'No photograph of an identity document, real or stock');
-  eq('collection · no image element inside the tablet', await page.locator('[data-tablet="screen"] img').count(), 0);
+  has('collection · the ID slot is a labelled placeholder', t, 'No photograph of an identity document');
+  eq('collection · no image inside the tablet', await page.locator('[data-tablet="screen"] img').count(), 0);
 
   const done = page.getByTestId('complete');
   eq('collection · completion is inert', await done.getAttribute('aria-disabled'), 'true');
@@ -242,105 +218,82 @@ await go('/collection/COL-VE-2026-08-20-0007/');
   await page.getByTestId('id-photo').click();
   has('collection · ...then only the signature', await done.innerText(), 'Missing a signature');
 
-  /* ⚠⚠ The signature trap: read the ink back out of the canvas and check it
-     landed where the pointer went. A backing store of 640×200 displayed at ~390
-     CSS px means an unscaled implementation puts the ink ~1.6× too far right. */
+  /* ⚠⚠ The signature trap: read the ink back out of the canvas. */
   const canvas = page.getByTestId('signature');
   const box = await canvas.boundingBox();
-  const px = box.x + box.width * 0.25;
-  const py = box.y + box.height * 0.5;
-  await page.mouse.move(px, py);
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.5);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.35, { steps: 12 });
   await page.mouse.up();
-  await page.waitForTimeout(80);
+  await page.waitForTimeout(90);
 
-  const inkAt = await canvas.evaluate((c, frac) => {
-    const ctx = c.getContext('2d');
-    const x = Math.round(c.width * frac);
-    // scan a 9px band around the vertical middle
-    const d = ctx.getImageData(x - 4, Math.round(c.height * 0.5) - 6, 9, 13).data;
-    let n = 0;
-    for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
-    return n;
-  }, 0.25);
-  ok(`signature · ink lands under the pointer (found ${inkAt} inked pixels at 25% across)`, inkAt > 0);
-
-  const strayAt = await canvas.evaluate((c) => {
-    const ctx = c.getContext('2d');
-    // 90% across: nothing was drawn there. Ink here means the scaling is wrong.
-    const d = ctx.getImageData(Math.round(c.width * 0.9) - 4, 0, 9, c.height).data;
-    let n = 0;
-    for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
-    return n;
+  const inkAt = await canvas.evaluate((c) => {
+    const d = c.getContext('2d').getImageData(Math.round(c.width * 0.25) - 4, Math.round(c.height * 0.5) - 6, 9, 13).data;
+    let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n;
   });
-  ok(`signature · no ink where the pointer never went (found ${strayAt})`, strayAt === 0);
+  ok(`signature · ink lands under the pointer (${inkAt} inked pixels at 25% across)`, inkAt > 0);
+  const stray = await canvas.evaluate((c) => {
+    const d = c.getContext('2d').getImageData(Math.round(c.width * 0.9) - 4, 0, 9, c.height).data;
+    let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++; return n;
+  });
+  ok(`signature · no ink where the pointer never went (${stray})`, stray === 0);
 
-  eq('collection · completion is live once both are present', await done.getAttribute('aria-disabled'), null);
+  eq('collection · live once both are present', await done.getAttribute('aria-disabled'), null);
   await done.click();
-  await page.waitForTimeout(120);
-  has('collection · the note is raised', await screenText(), 'Collection note COL-VE-2026-08-20-0007');
-  has('trail · the counter bind names its destination', await page.locator('body').innerText(), 'no truck involved');
-  await shot('08-collection');
+  await page.waitForTimeout(140);
+  has('collection · the note is raised', await screenText(), 'COL-VE-2026-08-20-0007');
+  await shot('07-collection');
 }
 
-/* ── 8. The collection that carries none ────────────────────────────────── */
-await go('/collection/COL-VE-2026-08-20-0006/');
+/* ── The unserialised collection skips the scan ─────────────────────────── */
+await go('/consignment/CN-AV-000015/');
 {
+  for (const id of ['description', 'quantity', 'condition']) {
+    await page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' }).click();
+  }
+  // ⚠ Nothing on it is serialised, so verification goes straight to the customer.
+  has('verify · an unserialised job skips the scan', await page.getByTestId('verify').innerText(), 'hand to the customer');
+  await page.getByTestId('verify').click();
+  await page.waitForURL('**/collection/COL-VE-2026-08-20-0006/**');
   const t = await screenText();
   has('collection · the bedset', t, 'Luxury Supreme Bedset Queen');
-  // ⚠ It says the control ran WITHOUT a serial rather than implying one.
-  has('collection · says plainly that nothing here is serialised', t, 'Nothing on this consignment is serialised');
-  has('collection · and points at the one that is', t, 'CN-BR-000028');
-  hasnt('collection · no serial is shown on an unserialised collection', t, '#G-0000047760');
-  await shot('09-collection-unserialised');
+  has('collection · says it carries no serial', t, 'Not serialised');
+  hasnt('collection · and shows none', t, '#G-0000047760');
+  await shot('08-collection-unserialised');
 }
 
-/* ── 9. Exceptions ──────────────────────────────────────────────────────── */
-await go('/exceptions/');
+/* ── The dropped screen ─────────────────────────────────────────────────── */
 {
-  const t = await screenText();
-  has('exceptions · the reference', t, 'EX-000029114');
-  // ⚠ Verbatim from the console's own EXCEPTIONS[0].expanded.
-  has('exceptions · the console’s wording', t, 'Serial #G-000004652985 scanned onto trip 03; the trail says it left Kwekwe on 24 June. The load is held.');
-  has('exceptions · the grant, named', t, 'Serial Mismatch Override');
-  has('exceptions · the first month is explained in advance', t, 'That is the system working');
-  has('exceptions · what is not built is named', t, 'Neither is built here');
-  eq('exceptions · the override here is inert too', await page.getByTestId('override-here').getAttribute('aria-disabled'), 'true');
-  await shot('10-exceptions');
+  expect404 = true;
+  const r = await page.goto(BASE + '/exceptions/', { waitUntil: 'networkidle' });
+  ok(`the exceptions screen is gone — got ${r.status()}`, r.status() === 404);
+  expect404 = false;
 }
 
-/* ── 10. Copy rules, inside the tablet only ─────────────────────────────── */
+/* ── Copy rules, inside the tablet only ─────────────────────────────────── */
 {
-  const routes = ['/', '/board/', '/consignment/CN-VE-000418/', '/scan/LD-000377/', '/scan/LD-000381/', '/handover/LD-000377/', '/collection/COL-VE-2026-08-20-0007/', '/exceptions/'];
-  const banned = ['Payment received', 'payment received', 'Skip scan', 'Skip this', 'Continue anyway', 'Override anyway'];
+  const routes = ['/', '/board/', '/consignment/CN-VE-000418/', '/scan/CN-VE-000418/', '/handover/LD-000377/', '/collection/COL-VE-2026-08-20-0007/'];
   for (const r of routes) {
     await go(r);
     const t = await screenText();
-    for (const b of banned) hasnt(`copy · ${r} says nothing like "${b}"`, t, b);
+    for (const b of ['Payment received', 'payment received', 'Skip scan', 'Continue anyway', 'Override anyway']) {
+      hasnt(`copy · ${r} says nothing like "${b}"`, t, b);
+    }
   }
 }
 
-/* ── 11. The projector switch, and a hard reload ────────────────────────── */
+/* ── A hard reload keeps the desk ───────────────────────────────────────── */
 {
-  await go('/board/?bare=1');
-  const railCount = await page.locator('text=What this design assumes').count();
-  eq('?bare=1 drops the rails', railCount, 0);
-  await shot('11-bare');
-
-  await go('/scan/LD-000377/');
+  await go('/scan/CN-VE-000418/');
   const before = await page.getByTestId('count').innerText();
   await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(200);
-  const after = await page.getByTestId('count').innerText();
-  eq('a hard reload keeps the desk', after.trim(), before.trim());
+  await page.waitForTimeout(220);
+  eq('a hard reload keeps the desk', (await page.getByTestId('count').innerText()).trim(), before.trim());
 }
 
-/* ── 12. Nothing threw ──────────────────────────────────────────────────── */
 ok(`no page or console errors — saw ${errors.length}: ${errors.slice(0, 3).join(' | ')}`, errors.length === 0);
 
 await browser.close();
-
 console.log(`\n${pass} passed, ${fails.length} failed`);
 for (const f of fails) console.log(`  FAIL  ${f}`);
 console.log(fails.length ? '\nFAIL\n' : '\nOK\n');
