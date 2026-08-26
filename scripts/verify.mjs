@@ -50,6 +50,17 @@ const go = async (p) => { await page.goto(BASE + p, { waitUntil: 'networkidle' }
 const screenText = () => page.locator('[data-tablet="screen"]').innerText();
 const shot = (n) => page.screenshot({ path: `${SHOTS}/${n}.png` });
 
+/* ⚠ The desk persists in localStorage, so blocks earlier in this file leave
+   consignments already verified and scanned. A walk that has to start from the
+   seeded morning says so and clears it, rather than quietly depending on
+   whatever ran before it. */
+const resetDesk = async () => {
+  await go('/board/');
+  await page.evaluate(() => localStorage.removeItem('vantage-dispatch-desk-v2'));
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(200);
+};
+
 /* ⚠ "It is on the page" is not "you can see it". This measures. */
 async function visible(what, testid) {
   const el = await page.getByTestId(testid).boundingBox();
@@ -210,13 +221,37 @@ await go('/handover/LD-000377/');
   await shot('06-handover');
 }
 
-/* ── The driver's signature gate, walked for real ───────────────────────── */
+/* ── The driver's signature gate, walked THE WAY A PERSON WALKS IT ──────── */
 {
-  /* ⚠ Scan out every consignment on LD-000377 so the seal becomes possible, then
-     check that sealing alone is not enough — he has to sign. */
-  await go('/board/');
+  /* ⚠⚠ THIS BLOCK USED TO NAVIGATE BY URL — `go('/consignment/CN-VE-000418/')`
+     for each of the five outstanding jobs — and so it passed while the app was
+     unusable. The script knew the routes. The clerk does not. Wyne hit the wall
+     the assertions could not see: from the handover screen there was no way to
+     reach the five still to scan out, so every load looked like a dead end at
+     the driver.
+
+     ⚠ A verification that supplies its own navigation is testing the pages, not
+     the product. Everything below CLICKS. */
+  await resetDesk();
+  await page.getByTestId('card-CN-VE-000402').click();
+  await page.waitForTimeout(140);
+  await page.getByTestId('verify').click();
+  await page.waitForTimeout(140);
+  await page.getByTestId('onward').click();
+  await page.waitForTimeout(160);
+
+  has('handover · reached by clicking, not by URL', page.url(), '/handover/LD-000377');
+  has('handover · the sheet says how to clear it', await screenText(), 'Tap one to scan it out');
+  has('handover · and what is outstanding', await page.getByTestId('seal').innerText(), '5 still to scan out');
+
+  /* Work down the load sheet, which is what a goods-out clerk does. */
   for (const cid of ['CN-VE-000418', 'CN-VE-000421', 'CN-VE-000424', 'CN-VE-000427', 'CN-VE-000429']) {
-    await go(`/consignment/${cid}/`);
+    const row = page.getByTestId(`unit-${cid}`);
+    ok(`handover · unit ${cid} is tappable while it is outstanding`, (await row.count()) === 1);
+    await row.click();
+    await page.waitForTimeout(160);
+    has(`handover · tapping ${cid} opens its verification`, page.url(), `/consignment/${cid}`);
+
     for (const id of ['description', 'quantity', 'condition']) {
       const cell = page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' });
       if (await cell.count()) await cell.click();
@@ -233,13 +268,18 @@ await go('/handover/LD-000377/');
         await buttons.first().click();
         await page.waitForTimeout(90);
       }
+      await page.getByTestId('onward').click();
+      await page.waitForTimeout(160);
     }
+    has(`handover · ${cid} lands back on the load sheet`, page.url(), '/handover/LD-000377');
   }
-  await go('/handover/LD-000377/');
+
   const seal = page.getByTestId('seal');
   eq('handover · sealing is live once every consignment is scanned out', await seal.getAttribute('aria-disabled'), null);
   await seal.click();
   await page.waitForTimeout(140);
+  /* ⚠ Once sealed the control is replaced by a statement, not left dimmed. */
+  ok('handover · sealing states itself rather than dimming', (await page.getByTestId('sealed').count()) === 1);
 
   const accept = page.getByTestId('accept');
   eq('handover · accepting is still inert with no signature', await accept.getAttribute('aria-disabled'), 'true');
@@ -262,6 +302,43 @@ await go('/handover/LD-000377/');
   has('handover · on this tablet, not his', t, 'T118');
   has('handover · the gate pass is raised', t, 'GP-VE-2026-08-20-0021');
   await shot('09-handover-signed');
+}
+
+/* ── The load that does not go, and says why ────────────────────────────── */
+{
+  /* ⚠⚠ LD-000381 is one consignment and that consignment is stopped. The truck
+     genuinely does not go — which is the control working, not the demo
+     breaking. Before this the blocked scan had no exit at all and the load was
+     unreachable: the same dead end, one screen earlier. */
+  await resetDesk();
+  await page.getByTestId('card-CN-MW-000121').click();
+  await page.waitForTimeout(140);
+  for (const id of ['description', 'quantity', 'condition']) {
+    const cell = page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' });
+    if (await cell.count()) await cell.click();
+  }
+  await page.getByTestId('verify').click();
+  await page.waitForTimeout(140);
+  await page.getByTestId('scan-1').click();
+  await page.waitForTimeout(140);
+
+  const onward = page.getByTestId('onward');
+  eq('block · the way on stays inert', await onward.getAttribute('aria-disabled'), 'true');
+  has('block · and says who to fetch', await onward.innerText(), 'Blocked — fetch the loading clerk');
+
+  const out = page.getByTestId('to-load');
+  ok('block · the clerk can still reach the load', (await out.count()) === 1);
+  await out.click();
+  await page.waitForTimeout(160);
+
+  const t = await screenText();
+  has('blocked load · reached from the block', page.url(), '/handover/LD-000381');
+  has('blocked load · says the truck does not go', t, 'This load does not go');
+  has('blocked load · names the exception', t, 'EX-000029114');
+  hasU('blocked load · names the grant', t, 'Serial Mismatch Override');
+  has('blocked load · names who holds it', t, 'Branch manager');
+  has('blocked load · the seal control says which reason', await page.getByTestId('seal').innerText(), '1 line blocked');
+  await shot('10-load-that-does-not-go');
 }
 
 /* ── The collection ─────────────────────────────────────────────────────── */

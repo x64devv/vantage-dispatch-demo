@@ -205,6 +205,27 @@ export default function ScanView({ id }: { id: string }) {
 
       {/* ── The way on ─────────────────────────────────────────────────── */}
       <div style={{ flex: 'none', padding: '18px 26px', borderTop: `2px solid ${DIV}` }}>
+        {/* ⚠⚠ A BLOCKED LINE IS NOT A DEAD END FOR THE CLERK.
+
+            The onward control below is dim and stays dim — this line does not go,
+            and no second control may look like a way around that. But the clerk is
+            still standing at a desk with a truck outside, and the rest of that
+            truck still goes. With nothing here the only exit was the browser's
+            Back, and the load became unreachable: exactly the "stuck at the driver"
+            Wyne hit. ⚠ The wording is the sentence from COPY-RULES §8, not an
+            escape hatch. */}
+        {ex && c.load && (
+          <Btn
+            height={56}
+            fontSize={16}
+            center
+            testid="to-load"
+            style={{ width: '100%', marginBottom: 10 }}
+            onClick={() => router.push(`/handover/${c.load}`)}
+          >
+            The rest of the load still goes — back to the load sheet
+          </Btn>
+        )}
         <Btn
           kind="primary"
           center
