@@ -17,7 +17,7 @@
  */
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { DAY, consignment, exceptionFor, serialsFor, type CapturedBy, type Consignment } from './day';
+import { DAY, consignment, exceptionFor, unitsFor, type CapturedBy, type Consignment } from './day';
 
 /** ⚠ Three checks a person can make by looking, before anything is scanned:
  *  description, quantity, condition. The fourth — the serial — is the scan
@@ -90,7 +90,7 @@ function seed(): Pick<DeskState, 'rows' | 'verified' | 'checks'> {
     checks[cid] = { description: 'yes', quantity: 'yes', condition: 'yes' };
     const c = consignment(cid)!;
     for (const l of c.lines) {
-      rows[`${cid}#${l.no}`].serials = serialsFor(cid, l.no).map((s) => ({
+      rows[`${cid}#${l.no}`].serials = unitsFor(cid, l.no).map((s) => ({
         serial: s.serial,
         capturedBy: s.capturedBy,
       }));
@@ -178,7 +178,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
           rows: { ...prev.rows, [key]: { ...row, blocked: true } },
         };
       }
-      const next = serialsFor(cid, lineNo)[row.serials.length];
+      const next = unitsFor(cid, lineNo)[row.serials.length];
       if (!next) return prev;
       return {
         ...prev,

@@ -1,6 +1,6 @@
 {
   "_file": "dispatch-day.json — the goods-out day at Village Walk Electrical, Thursday 20 August 2026.",
-  "_rule": "⚠⚠ THIS FILE IS UPSTREAM OF THE DRIVER APP. Every stop, consignment, seal and serial in vantage-driver-app/lib/run.ts originates here, and scripts/derive-run.mjs in vantage-dispatch-demo/ regenerates that run from this file and refuses if the two disagree. Do not edit a serial, a seal, a load unit or a consignment number here without running the derivation.",
+  "_rule": "⚠⚠ THIS FILE IS UPSTREAM OF THE DRIVER APP. Every stop, consignment, seal and serial in vantage-driver-app/lib/run.ts originates here, and scripts/derive-run.mjs in vantage-dispatch-demo/ regenerates that run from this file and refuses if the two disagree. Do not edit a serial, a seal, a load unit or a consignment number here without running the derivation. ⚠⚠⚠ AND THE INVARIANT NOBODY WROTE UNTIL 26 AUG: EVERY SERIALISED LINE MUST HAVE AS MANY UNITS TO BIND AS IT HAS QUANTITY — counting serialAssignments AND a collection's own serialScans — with exactly ONE exception, CN-MW-000121 line 1, whose emptiness IS beat 5. A serialised line with nothing behind it renders a Scan button that does nothing when it is pressed, and that consignment can never leave the building. Three lines were in that state and the demo shipped with them. DayTest.`every serialised line has something to bind, or is the block` fails the build on it now.",
   "_sources": [
     "Transport-Material/TVSH-SDD-TRP-001-Domain-Model.md §4.1, §5.1, §5.5, §5.6, §6.6, §7.8, §7.9",
     "Transport-Material/TVSH-SDD-TRP-002-Three-Applications.md §1, §3, §6",
@@ -626,7 +626,55 @@
     { "id": "SA-000091448", "serial": "#G-000004788044", "consignment": "CN-VE-000424", "line": 1, "unit": 1, "boundAt": "07:20", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR" },
     { "id": "SA-000091449", "serial": "#G-000004778120", "consignment": "CN-VE-000424", "line": 2, "unit": 1, "boundAt": "07:21", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Typed", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR",
       "_why": "⚠⚠ TYPED, NOT SCANNED — the barcode on the back of this stove would not read in the stock room. TRP-004 §7 makes typed entry the fallback and records it AS typed, because two grades of a fact are two visibly different things. It is put on a transfer line deliberately: the driver never sees this row, so the grade shows where it is acted on — the dispatch screen and the console. ⚠ If typed entries run high in month one that is a hardware finding (a rugged Bluetooth scanner), not a discipline problem." },
-    { "id": "SA-000091451", "serial": "#G-000004779344", "consignment": "CN-VE-000424", "line": 4, "unit": 1, "boundAt": "07:24", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR" }
+    { "id": "SA-000091451", "serial": "#G-000004779344", "consignment": "CN-VE-000424", "line": 4, "unit": 1, "boundAt": "07:24", "boundAtLocation": "VE", "boundBy": "STAFF-0914", "capturedBy": "Scanned", "loadUnit": "LD-000377 / 6", "condition": "Good", "conditionPhoto": false, "state": "BOUND_AT_DISPATCH", "awaitingReceiptScanAt": "BR" },
+    {
+      "id": "SA-000091457",
+      "serial": "#G-000004779351",
+      "consignment": "CN-AV-000120",
+      "line": 1,
+      "unit": 1,
+      "boundAt": "07:18",
+      "boundAtLocation": "VE",
+      "boundBy": "STAFF-0914",
+      "capturedBy": "Scanned",
+      "loadUnit": "—",
+      "condition": "Good",
+      "conditionPhoto": true,
+      "state": "BOUND_AT_DISPATCH",
+      "_why": "⚠⚠ ADDED 26 Aug, and it is a DEFECT FIX, not new colour. This line was marked serialised with no serial behind it anywhere in this file, so the Scan button on it did nothing at all when a clerk pressed it — the count sat at 0 of 1, the gate never opened, and Nyasha Mhlanga's television could never leave the building. It survived because the scripted beats walk the other consignments and nobody pressed this one. ⚠ CN-AV-000120 is on no load: it is verified and staged for a trip that has not been built, so loadUnit is an em dash rather than an invented one."
+    },
+    {
+      "id": "SA-000091458",
+      "serial": "#G-000004779362",
+      "consignment": "CN-VE-000125",
+      "line": 1,
+      "unit": 1,
+      "boundAt": "07:22",
+      "boundAtLocation": "VE",
+      "boundBy": "STAFF-0914",
+      "capturedBy": "Scanned",
+      "loadUnit": "—",
+      "condition": "Good",
+      "conditionPhoto": true,
+      "state": "BOUND_AT_DISPATCH",
+      "_why": "⚠ ADDED 26 Aug, same defect. CN-VE-000125 is the hired-carrier job, and the carrier lane has no tab on the board — it is in this file deliberately, named as not built rather than deleted. A consignment with a dead Scan button is still dead the day that lane gets its tab, so it is fixed here rather than left as a trap."
+    },
+    {
+      "id": "SA-000091459",
+      "serial": "#G-000004776048",
+      "consignment": "CN-WK-000041",
+      "line": 4,
+      "unit": 1,
+      "boundAt": "07:27",
+      "boundAtLocation": "VE",
+      "boundBy": "STAFF-0914",
+      "capturedBy": "Scanned",
+      "loadUnit": "—",
+      "condition": "Good",
+      "conditionPhoto": true,
+      "state": "BOUND_AT_DISPATCH",
+      "_why": "⚠⚠ ADDED 26 Aug, and this was the worst of the three. CN-WK-000041 is Anesu Bere's — the card carrying 15 days held and the 3% penalty due, which is the strongest card on the collection lane and the one a director is most likely to point at. Its stove could not be scanned out, so the lane's own headline example dead-ended at step 2."
+    }
   ],
 
   "quantityConfirmations": [

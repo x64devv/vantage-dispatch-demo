@@ -12,6 +12,7 @@
  */
 
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 import { mkdirSync } from 'node:fs';
 
 const BASE = process.env.BASE || 'http://localhost:4174';
@@ -302,6 +303,112 @@ await go('/handover/LD-000377/');
   has('handover · on this tablet, not his', t, 'T118');
   has('handover · the gate pass is raised', t, 'GP-VE-2026-08-20-0021');
   await shot('09-handover-signed');
+}
+
+/* ── ⚠⚠⚠ EVERY CONSIGNMENT ON THE BOARD, DISPATCHED ─────────────────────── */
+{
+  /* ⚠⚠⚠ THIS IS THE WALK THAT WAS MISSING, AND ITS ABSENCE IS WHY THE DEMO
+     SHIPPED BROKEN. Every check in this file walked the scripted beats, so the
+     three consignments the beats do not visit were never pressed — and all
+     three had a `Scan` button that bound nothing. The count sat at `0 of 1`,
+     the gate never opened, and those goods could not leave the building.
+
+     Wyne found it by pressing the button:
+       "the simulate scan is not working … not even one customer is getting past
+        the scanning and the signing."
+
+     ⚠ So this walks EVERY consignment on BOTH tabs to a finished state, and it
+     is deliberately exhaustive rather than representative. A demo where one
+     card in ten dead-ends is a demo that dead-ends in front of a director,
+     because a director points at whichever card he likes. */
+  await resetDesk();
+
+  const day = JSON.parse(readFileSync(new URL('../lib/dispatch-day.json', import.meta.url), 'utf8'));
+  const BLOCKED = 'CN-MW-000121'; // the one that is SUPPOSED to stop
+
+  for (const c of day.consignments) {
+    if (c.lane === 'carrier') continue;  // no tab on the board, by design
+    if (c.id === BLOCKED) continue;      // beat 5, walked in its own block above
+
+    await go(`/consignment/${c.id}/`);
+    for (const id of ['description', 'quantity', 'condition']) {
+      const cell = page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' });
+      if (await cell.count()) await cell.click();
+    }
+    await page.getByTestId('verify').click();
+    await page.waitForTimeout(150);
+
+    if (page.url().includes('/scan/')) {
+      const units = c.lines.filter((l) => l.serialised).reduce((n, l) => n + l.qty, 0);
+      for (let i = 0; i < units + 2; i++) {
+        const buttons = page.locator('[data-testid^="scan-"]');
+        if ((await buttons.count()) === 0) break;
+        await buttons.first().click();
+        await page.waitForTimeout(80);
+      }
+      /* ⚠ THE ASSERTION THAT WOULD HAVE CAUGHT IT: the count actually moved. */
+      const count = (await page.getByTestId('count').innerText()).trim();
+      eq(`${c.id} · every serial bound`, count, `${units} of ${units}`);
+
+      /* ⚠ Assert BEFORE clicking, and do not click a control that is inert —
+         Playwright retries a disabled click for 30s and the run dies on a
+         timeout instead of telling you which consignment cannot be dispatched. */
+      const onward = page.getByTestId('onward');
+      const live = (await onward.getAttribute('aria-disabled')) === null;
+      ok(`${c.id} · the way on is live once everything is bound — it reads ${JSON.stringify(await onward.innerText())}`, live);
+      if (!live) continue;
+      await onward.click();
+      await page.waitForTimeout(160);
+    }
+
+    /* And it ends somewhere a consignment can actually finish. */
+    const where = page.url();
+    const finishable = where.includes('/handover/') || where.includes('/collection/') || where.includes('/board');
+    ok(`${c.id} · reaches a screen where it can leave the building — got ${where}`, finishable);
+  }
+}
+
+/* ── ⚠⚠ The counter bind: a serial that lives under its collection ──────── */
+{
+  /* Simba Mhlanga's Hisense is serialised and its serial appears ONLY in
+     `collections[].serialScans`. Reading `serialAssignments` alone left this
+     exact screen with a Scan button that could not bind anything — which is the
+     screenshot Wyne sent. */
+  await resetDesk();
+  await go('/consignment/CN-BR-000028/');
+  for (const id of ['description', 'quantity', 'condition']) {
+    const cell = page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' });
+    if (await cell.count()) await cell.click();
+  }
+  await page.getByTestId('verify').click();
+  await page.waitForTimeout(150);
+
+  has('counter bind · verification leads to the scan', page.url(), '/scan/CN-BR-000028');
+  eq('counter bind · nothing bound yet', (await page.getByTestId('count').innerText()).trim(), '0 of 1');
+  await page.getByTestId('scan-1').click();
+  await page.waitForTimeout(140);
+  eq('counter bind · the scan actually binds', (await page.getByTestId('count').innerText()).trim(), '1 of 1');
+  has('counter bind · and it is the serial from the collection record', await screenText(), '#G-000004776031');
+
+  await page.getByTestId('onward').click();
+  await page.waitForTimeout(160);
+  has('counter bind · onward reaches the counter hand-over', page.url(), '/collection/');
+
+  await page.getByTestId('id-photo').click();
+  const canvas = page.getByTestId('signature');
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.42, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(90);
+
+  const complete = page.getByTestId('complete');
+  eq('counter bind · the gate opens once both are there', await complete.getAttribute('aria-disabled'), null);
+  await complete.click();
+  await page.waitForTimeout(160);
+  has('counter bind · the collection note is raised', await screenText(), 'Collection note raised');
+  await shot('11-counter-bind-complete');
 }
 
 /* ── The load that does not go, and says why ────────────────────────────── */

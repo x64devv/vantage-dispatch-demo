@@ -158,6 +158,33 @@ export const consignmentsInLane = (lane: Lane) =>
 export const serialsFor = (cid: string, lineNo?: number) =>
   DAY.serialAssignments.filter((s) => s.consignment === cid && (lineNo === undefined || s.line === lineNo));
 
+/** One physical unit waiting to be bound to this line, and how it was captured. */
+export type UnitToBind = { unit: number; serial: string; capturedBy: CapturedBy };
+
+/**
+ * ⚠⚠ A SERIAL BOUND AT A COUNTER IS THE SAME ACT AS ONE BOUND AT A TRUCK.
+ *
+ * The day records them in two places because two different documents produced
+ * them: `serialAssignments` for what went onto a load, and `collections[].
+ * serialScans` for what a customer carried out of the door. `CN-BR-000028`
+ * line 1 — Simba Mhlanga's Hisense 222L — is serialised and appears ONLY under
+ * its collection.
+ *
+ * Reading `serialAssignments` alone left that line with a Scan button that
+ * could not bind anything: press it and the count stays at `0 of 1` forever.
+ * Which is the one defect this entire screen exists to prevent, sitting on the
+ * screen itself. **Both sources, one bind.**
+ */
+export function unitsFor(cid: string, lineNo: number): UnitToBind[] {
+  const assigned = serialsFor(cid, lineNo)
+    .slice()
+    .sort((a, b) => a.unit - b.unit)
+    .map((s) => ({ unit: s.unit, serial: s.serial, capturedBy: s.capturedBy }));
+  if (assigned.length) return assigned;
+  const scans = (collectionFor(cid)?.serialScans ?? []).filter((x) => x.line === lineNo);
+  return scans.map((s, i) => ({ unit: i + 1, serial: s.serial, capturedBy: s.capturedBy }));
+}
+
 export const qtyConfirmFor = (cid: string, lineNo: number) =>
   DAY.quantityConfirmations.find((q) => q.consignment === cid && q.line === lineNo);
 

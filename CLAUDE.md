@@ -87,8 +87,14 @@ There is one goods-out day and it lives in
 copy that `npm run build` overwrites from it.
 
 ```
+npm run check       # ⚠⚠ the invariants, before a single screen is drawn — `npm run build` runs it
 npm run derive      # rebuild the driver's run from the dispatch day and check it, value by value
 ```
+
+⚠⚠ **`scripts/check-day.mjs` is the cheap half and it runs first.** The costly half — a browser
+walking a path — catches ONE path. A check over the data catches a whole class at once, and the class
+it exists for is the one that shipped on 25 August: **a serialised line with nothing behind it**,
+whose `Scan` button does nothing at all when pressed. See §8.
 
 **Result on 21 August: 147 of 149 derived values found verbatim inside the matching stop of
 `vantage-driver-app/lib/run.ts`**, plus 8 fields dispatch holds that the driver's screen does not
@@ -231,6 +237,7 @@ appears on no dispatch screen.
 | S9 | `/collection/[ref]` — both cases | ✅ ink asserted from canvas pixels |
 | S10 | **Rails stripped, sizes raised** — the internal review | ✅ measured: the tablet renders larger than its design pixels |
 | S11 | **Demo pass on the real projector, with the other two apps** | ☐ **not done, and it is not optional** |
+| S12 | **Every consignment on both tabs walked to a finished state** | ✅ 26 Aug — and it found three that could not be dispatched at all |
 
 ## 8. Traps
 
@@ -244,6 +251,22 @@ appears on no dispatch screen.
   and the pin is missing or does not match → refuse. ⚠ The pin is only ever written when the real
   handoff is on disk, so editing the copy alone still fails by name — the control survives, it just
   stopped catching the wrong thing.
+- ⚠⚠⚠ **A SERIALISED LINE WITH NOTHING TO BIND — the one that reached Wyne.** Three consignments
+  (`CN-AV-000120`, `CN-WK-000041`, `CN-VE-000125`) had a serialised line and no serial anywhere in
+  the day. Their `Scan` button rendered, took the press, and did nothing: the count sat at `0 of 1`,
+  the gate never opened, those goods could never leave the building. **150 browser assertions and 56
+  Kotlin tests were green** while a fifth of the board could not be dispatched, because every one of
+  them walked the scripted beats and the beats walk the other consignments. Wyne found it by pressing
+  the button. Three things changed: the serials are in the fixture; `check-day.mjs` fails the build
+  on the invariant; and `verify.mjs` now walks **every consignment on both tabs** to a finished
+  state, asserting the count actually moved. ⚠ *Representative coverage is not coverage. A director
+  points at whichever card he likes.*
+- ⚠⚠ **A serial that lives under its collection, not under `serialAssignments`.** `CN-BR-000028` —
+  Simba's Hisense — records its bind in `collections[].serialScans`, because that is the document a
+  counter hand-over produces. `serialsFor` read only `serialAssignments`, so that line could not bind
+  either. `unitsFor` in `lib/day.ts` reads **both**, and the Kotlin app has the same function for the
+  same reason. **A fix aimed at one case is not a fix** — this was found and half-fixed a day before
+  the other three were found.
 - ⚠ **A steps bar that stopped a third of the way across** read as an unfinished underline. It is
   full width with one bottom rule now. Found by looking at a screenshot.
 - ⚠ **A load sheet listed unit 4 above unit 1**, because `loadReady` filtered without sorting. That is
