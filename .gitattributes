@@ -1,0 +1,5 @@
+# The build pins lib/dispatch-day.json by SHA-256 (scripts/sync-data.mjs). A Windows
+# checkout with core.autocrlf=true rewrites it to CRLF, the hash changes, and
+# `npm run build` refuses. Keep the pinned file and its pin byte-identical everywhere.
+lib/dispatch-day.json   text eol=lf
+lib/dispatch-day.sha256 text eol=lf
