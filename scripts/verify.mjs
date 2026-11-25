@@ -12,11 +12,21 @@
  */
 
 import { chromium } from 'playwright';
-import { readFileSync } from 'node:fs';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 
 const BASE = process.env.BASE || 'http://localhost:4174';
-const EXE = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+/* ⚠ Which browser. CHROME wins; otherwise the first installed Chrome or Edge on
+   this machine (Windows, macOS, Linux); otherwise Playwright's own download, if
+   `npx playwright install chromium` has been run. Installing the `playwright`
+   package does not fetch a browser by itself. */
+const EXE = process.env.CHROME || [
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+  'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+  'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser',
+].find((p) => existsSync(p));
 const SHOTS = 'shots';
 
 let pass = 0;
@@ -32,7 +42,7 @@ const hasU = (what, hay, needle) =>
 
 mkdirSync(SHOTS, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: EXE });
+const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
 const ctx = await browser.newContext({ viewport: { width: 1800, height: 1150 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 
