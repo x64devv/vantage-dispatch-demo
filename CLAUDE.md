@@ -30,6 +30,12 @@ follow, is **`../GAIN-RESEED.md`** — change an identity there and in all three
   local copy when the handoff is absent. Derivation: **137 of 137** values agree with the driver run;
   D1/D2 are closed. `verify.mjs`: **180 of 180** on Windows, 25 Nov.
 - ⚠ The 14-day / 3% collection penalty is carried over from TVSH — **an assumption to confirm with Gain.**
+- **Phase 2 (25 Nov):** four board tabs — collection, our driver, **a carrier** (`/carrier/[id]`: load
+  photo, gate pass, the carrier's driver signs on T118, proof due back on paper) and **coming back**
+  (`/return/[ref]`: yesterday's failed delivery received into stock — seal, every line counted, a
+  "no" still receives and raises the difference in the clerk's name). The transfer is named on its
+  card and its verify screen. Data in `carrierHandovers` / `returns`, pin rewritten.
+  `verify.mjs`: **205 of 205**; derive 137/137.
 
 ---
 

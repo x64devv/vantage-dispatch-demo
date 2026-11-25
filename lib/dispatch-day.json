@@ -1306,5 +1306,68 @@
       8,
       5
     ]
-  }
+  },
+  "carrierHandovers": [
+    {
+      "ref": "CH-VE-2026-08-20-0002",
+      "consignment": "CN-VE-000125",
+      "carrier": {
+        "name": "Kopje Haulage",
+        "vehicle": "AHX2205"
+      },
+      "carrierDriver": {
+        "name": "E. Gumbo",
+        "idNo": "63-0917742-Q-07"
+      },
+      "gatePass": "GP-VE-2026-08-20-0024",
+      "proofDue": "2026-08-22",
+      "_why": "⚠ Phase 2, Gain demo, illustrative. A hired carrier was never on our app, so the load photograph, the gate pass and his signature on T118 are the WHOLE evidentiary basis for a claim against them. Proof of delivery comes back on paper and is matched here on return — the screen says so rather than pretending to track him."
+    }
+  ],
+  "returns": [
+    {
+      "ref": "RTN-VE-2026-08-20-0001",
+      "consignment": "CN-VE-000396",
+      "invoice": "414388",
+      "customer": {
+        "name": "G. Marimo",
+        "suburb": "Mabvuku"
+      },
+      "sellingBranch": "VE",
+      "rebookOwner": "VE",
+      "trip": "TR-HRE-2026-08-19-04",
+      "vehicle": {
+        "reg": "AHD4410",
+        "fleetNo": "GC88"
+      },
+      "driver": {
+        "name": "B. Chimbetu",
+        "staffNo": "STAFF-1174"
+      },
+      "exception": {
+        "ref": "EX-000029097",
+        "title": "Delivery failed — nobody at the address",
+        "reason": "NobodyHome",
+        "fault": "Customer",
+        "raisedAt": "2026-08-19 15:42"
+      },
+      "seal": "44087",
+      "heldSince": "2026-08-19 18:20",
+      "lines": [
+        {
+          "no": 1,
+          "sku": "GC-200206",
+          "desc": "Cooking oil 2L × 6, case",
+          "qty": 12
+        },
+        {
+          "no": 2,
+          "sku": "GC-230010",
+          "desc": "Rice 10kg, bag",
+          "qty": 8
+        }
+      ],
+      "_why": "⚠ Phase 2, Gain demo, illustrative — URD 10.12 reverse logistics. Yesterday's failed stop came back to the depot sealed and sat in custody overnight. Goods-in here is the other half of the driver's 'a no is an outcome and the goods come back': seal checked, every line counted back, condition, and it is back in stock with the rebook owned by the branch that sold it. A short or damaged line raises an exception with the clerk's name on it."
+    }
+  ]
 }

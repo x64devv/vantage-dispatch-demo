@@ -43,6 +43,8 @@ function screenOf(pathname: string): Screen {
 
   if (p.startsWith('/handover')) return { title: 'Hand to the driver', back: '/board' };
   if (p.startsWith('/collection')) return { title: 'Hand to the customer', back: '/board' };
+  if (p.startsWith('/carrier')) return { title: 'Hand to the carrier', back: '/board' };
+  if (p.startsWith('/return')) return { title: 'Goods coming back', back: '/board' };
   return { title: 'Goods out', back: '/board' };
 }
 

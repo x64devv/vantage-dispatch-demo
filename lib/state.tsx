@@ -39,9 +39,9 @@ export type ScanRow = {
   blocked: boolean;
 };
 
-/** ⚠ The board shows two of the three lanes. `carrier` is in the data and has no
- *  tab — named as not built rather than deleted. */
-export type BoardTab = 'collection' | 'ourDriver';
+/** ⚠ Four tabs since Phase 2 (Gain demo): collection first, then our driver, a
+ *  hired carrier, and goods coming back. One queue on screen at a time. */
+export type BoardTab = 'collection' | 'ourDriver' | 'carrier' | 'returning';
 
 export type DeskState = {
   signedIn: boolean;
@@ -62,6 +62,14 @@ export type DeskState = {
   collectionsDone: Record<string, boolean>;
   collectionSigInk: Record<string, boolean>;
   collectionIdPhoto: Record<string, boolean>;
+  /** Phase 2: the carrier hand-over — load photo, his signature, done. */
+  carrierPhoto: Record<string, boolean>;
+  carrierSigInk: Record<string, boolean>;
+  carrierDone: Record<string, boolean>;
+  /** Phase 2: goods coming back — the seal, each line counted, and the result. */
+  returnSeal: Record<string, 'yes' | 'no'>;
+  returnLines: Record<string, 'yes' | 'no'>;
+  returnDone: Record<string, boolean>;
 };
 
 /* ⚠ The desk opens part-way through the morning, not empty. Stops 1–3 of
@@ -109,6 +117,12 @@ export const initialState = (): DeskState => ({
   collectionsDone: {},
   collectionSigInk: {},
   collectionIdPhoto: {},
+  carrierPhoto: {},
+  carrierSigInk: {},
+  carrierDone: {},
+  returnSeal: {},
+  returnLines: {},
+  returnDone: {},
   ...seed(),
 });
 
@@ -236,6 +250,8 @@ export function stageOf(s: DeskState, c: Consignment): Stage {
   if (c.load && s.handedOver[c.load]) return 'Gone';
   const col = DAY.collections.find((x) => x.consignment === c.id);
   if (col && s.collectionsDone[col.ref]) return 'Gone';
+  const ch = DAY.carrierHandovers.find((x) => x.consignment === c.id);
+  if (ch && s.carrierDone[ch.ref]) return 'Gone';
   if (scanComplete(s, c)) return 'Scanned';
   if (s.verified[c.id]) return 'Verified';
   return 'Waiting';
