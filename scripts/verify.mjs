@@ -128,8 +128,8 @@ await page.waitForURL('**/consignment/CN-VE-000418/**');
   const t = await screenText();
   has('verify · the three steps are on screen', t, 'Verify');
   has('verify · ...and where it goes', t, 'Hand over');
-  has('verify · the goods', t, 'CTV Samsung 85" QA85Q7FAAUXKE');
-  has('verify · the real §SD-4 bracket SKU', t, 'OB-MP-GB-801000067');
+  has('verify · the goods', t, 'Chest freezer Defy 300L CF300');
+  has('verify · the case line carries its GC- SKU', t, 'GC-200206');
   has('verify · the pin grade', await page.getByTestId('pin-grade').innerText(), 'Salesperson');
   has('verify · the invoice is named, not drawn', t, 'a re-rendered invoice is what the rule forbids');
   // ⚠ The serial is NOT a check on this screen — it cannot be answered by looking.
@@ -248,8 +248,12 @@ await go('/handover/LD-000377/');
   await page.waitForTimeout(140);
   await page.getByTestId('verify').click();
   await page.waitForTimeout(140);
-  await page.getByTestId('onward').click();
-  await page.waitForTimeout(160);
+  /* ⚠ Gain re-seed: CN-VE-000402 is a bale of sugar now, not a serialised
+     stove, so verify goes straight to the load sheet with no scan step. */
+  if (page.url().includes('/scan/')) {
+    await page.getByTestId('onward').click();
+    await page.waitForTimeout(160);
+  }
 
   has('handover · reached by clicking, not by URL', page.url(), '/handover/LD-000377');
   has('handover · the sheet says how to clear it', await screenText(), 'Tap one to scan it out');
@@ -513,7 +517,7 @@ await go('/consignment/CN-AV-000015/');
   await page.getByTestId('verify').click();
   await page.waitForURL('**/collection/COL-VE-2026-08-20-0006/**');
   const t = await screenText();
-  has('collection · the bedset', t, 'Luxury Supreme Bedset Queen');
+  has('collection · the counted collection', t, 'Maize meal 10kg, bag');
   has('collection · says it carries no serial', t, 'Not serialised');
   hasnt('collection · and shows none', t, '#G-0000047760');
   await shot('08-collection-unserialised');

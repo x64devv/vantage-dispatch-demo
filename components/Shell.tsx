@@ -71,6 +71,19 @@ export default function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: PAD }}>
+      {/* ⚠⚠ Gain re-seed, 25 Nov 2026: every identity is illustrative
+          (../GAIN-RESEED.md). The tag sits outside the tablet on every route —
+          it is a fact about the demo, not something the tablet would print. */}
+      <div
+        data-illustrative="1"
+        style={{
+          position: 'fixed', top: 10, right: 14, zIndex: 50, padding: '6px 10px',
+          border: '2px solid var(--color-accent)', background: BG, color: 'var(--color-accent)',
+          font: '700 12px/1 Archivo, system-ui', letterSpacing: '.12em', textTransform: 'uppercase',
+        }}
+      >
+        Illustrative data — not Gain&rsquo;s records
+      </div>
       <div style={{ width: T.bezelW * scale, height: T.bezelH * scale, flex: 'none' }}>
         <div
           style={{

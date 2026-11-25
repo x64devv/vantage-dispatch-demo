@@ -154,8 +154,8 @@ function BoardCard({ c, stage, onOpen }: { c: Consignment; stage: Stage; onOpen:
           {c.id} · {c.lines.length} line{c.lines.length === 1 ? '' : 's'}
         </Mono>
         {/* ⚠ The ageing figure is the only extra a collection card carries, and it
-            is the reason this lane exists: TVSH prints a 3% penalty at fourteen
-            days on every invoice and nothing has ever watched that clock. */}
+            is the reason this lane exists. ⚠ The 3% penalty at fourteen days is
+            carried over from the TVSH build — an assumption to confirm with Gain and nothing has ever watched that clock. */}
         {c.heldDays != null && (
           <Mono
             style={{

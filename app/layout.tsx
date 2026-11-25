@@ -7,7 +7,7 @@ import Shell from '@/components/Shell';
 export const metadata: Metadata = {
   title: 'Vantage Dispatch',
   description:
-    'Demo build of the Vantage Dispatch tablet for TVSH Transport. Seeded day, no server, not the production module.',
+    'Demo build of the Vantage Dispatch tablet for Gain Logistics. Illustrative seeded day, no server, not the production module.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
