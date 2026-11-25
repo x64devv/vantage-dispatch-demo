@@ -985,10 +985,9 @@
         "make": "UD MKE, 34.0 m³"
       },
       "driver": {
-        "name": "T. Mukanya",
-        "staffNo": "STAFF-1183"
+        "name": "C. Nyathi",
+        "staffNo": "STAFF-1190"
       },
-      "_driver_open": "⚠⚠ OPEN, AND IT IS THE CONSOLE'S TO SETTLE. The console has T. Mukanya driving trip 03 (LIVE_TRIPS) and also carrying invoice 414414 on trip 05 (RECORD). He cannot do both. Wyne's call on 21 Aug was that the console wins, so both strings are kept and neither fixture was edited. On this screen he is the person who RAISED the exception — the name on it — which is true either way and is the only claim the dispatch app makes about him here.",
       "crew": {
         "name": "P. Zvinavashe",
         "staffNo": "STAFF-1211"
@@ -1006,7 +1005,8 @@
       "seals": [],
       "gatePass": null,
       "handover": null,
-      "state": "OPEN"
+      "state": "OPEN",
+      "_driver_why": "Closed on the 25 Nov cross-app walk: T. Mukanya used to drive this trip AND trip 05. With illustrative Gain identities there was no register to defer to, so trip 03 has its own driver on the console (TM-3) and here."
     }
   ],
   "serialAssignments": [
@@ -1202,8 +1202,8 @@
       },
       "raisedAt": "07:31",
       "raisedBy": {
-        "name": "T. Mukanya",
-        "staffNo": "STAFF-1183"
+        "name": "C. Nyathi",
+        "staffNo": "STAFF-1190"
       },
       "raisedAtLocation": "VE",
       "capturedBy": "Scanned",

@@ -36,6 +36,8 @@ follow, is **`../GAIN-RESEED.md`** — change an identity there and in all three
   "no" still receives and raises the difference in the clerk's name). The transfer is named on its
   card and its verify screen. Data in `carrierHandovers` / `returns`, pin rewritten.
   `verify.mjs`: **205 of 205**; derive 137/137.
+- **Cross-app walk fix (25 Nov):** §6.2 is closed — LD-000381 (trip 03) and EX-000029114 are now
+  C. Nyathi's (`STAFF-1190`), matching the console. T. Mukanya drives trip 05 only. Pin rewritten.
 
 ---
 
