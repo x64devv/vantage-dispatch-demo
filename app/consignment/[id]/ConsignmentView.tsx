@@ -15,7 +15,7 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { PIN_GRADE, collectionFor, consignment } from '@/lib/day';
+import { PIN_GRADE, carrierHandoverFor, collectionFor, consignment } from '@/lib/day';
 import {
   CHECKS, anyCheckNo, checksAnswered, hasSerialisedLine, scanComplete, useDesk,
 } from '@/lib/state';
@@ -34,6 +34,7 @@ export default function ConsignmentView({ id }: { id: string }) {
   const serialised = hasSerialisedLine(c);
   const done = scanComplete(s, c);
   const collection = collectionFor(c.id);
+  const carrierHo = carrierHandoverFor(c.id);
 
   /* Where "verified" goes next: the serial scan if anything on it is serialised,
      otherwise straight to whoever is taking it. */
@@ -41,6 +42,7 @@ export default function ConsignmentView({ id }: { id: string }) {
     verify(c.id);
     if (serialised) return router.push(`/scan/${c.id}`);
     if (collection) return router.push(`/collection/${collection.ref}`);
+    if (carrierHo) return router.push(`/carrier/${c.id}`);
     if (c.load) return router.push(`/handover/${c.load}`);
     return router.push('/board');
   };
@@ -49,6 +51,8 @@ export default function ConsignmentView({ id }: { id: string }) {
     ? 'Verified — scan the serials'
     : collection
       ? 'Verified — hand to the customer'
+      : carrierHo
+        ? `Verified — hand to ${carrierHo.carrier.name}`
       : c.load
         ? 'Verified — hand to the driver'
         /* ⚠ Verified and staged, with nobody here yet to take it. That is the
@@ -107,7 +111,7 @@ export default function ConsignmentView({ id }: { id: string }) {
                 </div>
                 {/* ⚠ Serialised or not, on the line, before anything is scanned.
                     Serialisation is a per-item property, never a global mode —
-                    the catalogue is bed sets as well as televisions. */}
+                    the catalogue is cases of cooking oil as well as freezers. */}
                 <Tag tone={line.serialised ? 'neutral' : 'outline'} style={{ flex: 'none' }}>
                   {line.serialised ? 'Serialised' : 'No serial'}
                 </Tag>
@@ -118,6 +122,11 @@ export default function ConsignmentView({ id }: { id: string }) {
           <div style={{ display: 'flex', gap: 40, marginTop: 22, flexWrap: 'wrap' }}>
             <Fact label="Promised" value={`${c.promisedDate}${c.window && c.window !== '—' ? ` · ${c.window}` : ''}`} size={19} mono />
             <Fact label="Tender" value={c.tender === 'None' ? 'Branch transfer' : c.tender} size={19} />
+            {/* ⚠ Phase 2, Gain demo: a transfer is named as one — its own document
+                number and where it is going — not dressed as a customer sale. */}
+            {c.transferRef && (
+              <Fact label="Transfer" value={`${c.transferRef} · ${c.sourceBranch} → ${c.customer.name}`} size={19} mono />
+            )}
             {c.invoice && <Fact label="Invoice" value={c.invoice.no} size={19} mono />}
             {c.cashAtDoor && (
               <Fact label="To collect at the door" value={`${c.cashAtDoor.currency} ${c.cashAtDoor.amount}`} size={19} mono />

@@ -30,7 +30,11 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..');
-const DAY_PATH = resolve(REPO, '../Transport-Material/design_handoff_dispatch_app/data/dispatch-day.json');
+/* ⚠ The handoff is the source when it is on disk. On a checkout without it (the
+ * Gain re-seed, 25 Nov 2026, has no handoff at all) the pinned copy in lib/ is
+ * the source — sync-data.mjs has already checked it against its checksum. */
+const HANDOFF_DAY = resolve(REPO, '../Transport-Material/design_handoff_dispatch_app/data/dispatch-day.json');
+const DAY_PATH = existsSync(HANDOFF_DAY) ? HANDOFF_DAY : resolve(REPO, 'lib/dispatch-day.json');
 const DRIVER_RUN = resolve(REPO, '../vantage-driver-app/lib/run.ts');
 const KNOWN = JSON.parse(readFileSync(join(HERE, 'known-divergences.json'), 'utf8'));
 
@@ -134,7 +138,7 @@ const run = {
     load: load.id,
     seals: load.seals,
     crewSize: 2,
-    depot: { code: load.depot.code, name: load.depot.name, short: `${load.depot.code} Village Walk` },
+    depot: { code: load.depot.code, name: load.depot.name, short: `${load.depot.code} Willowvale` },
     driver: load.driver,
     crew: load.crew,
     terminal: f.terminal,

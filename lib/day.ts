@@ -116,6 +116,27 @@ export type Collection = {
   }[];
 };
 
+/** ⚠ Phase 2, Gain demo. A hired carrier signs on T118 against a gate pass;
+ *  proof of delivery comes back on paper and is matched on return. */
+export type CarrierHandover = {
+  ref: string; consignment: string;
+  carrier: { name: string; vehicle: string };
+  carrierDriver: { name: string; idNo: string };
+  gatePass: string; proofDue: string;
+};
+
+/** ⚠ Phase 2, Gain demo. Goods a driver brought back, received into stock. */
+export type ReturnIn = {
+  ref: string; consignment: string; invoice: string;
+  customer: { name: string; suburb: string };
+  sellingBranch: string; rebookOwner: string;
+  trip: string; vehicle: { reg: string; fleetNo: string };
+  driver: { name: string; staffNo: string };
+  exception: { ref: string; title: string; reason: string; fault: string; raisedAt: string };
+  seal: string; heldSince: string;
+  lines: { no: number; sku: string; desc: string; qty: number }[];
+};
+
 export type Day = {
   day: string;
   kicker: string;
@@ -133,6 +154,8 @@ export type Day = {
   quantityConfirmations: QtyConfirmation[];
   exceptions: DispatchException[];
   collections: Collection[];
+  carrierHandovers: CarrierHandover[];
+  returns: ReturnIn[];
 };
 
 export const DAY = raw as unknown as Day;
@@ -188,6 +211,9 @@ export function unitsFor(cid: string, lineNo: number): UnitToBind[] {
 export const qtyConfirmFor = (cid: string, lineNo: number) =>
   DAY.quantityConfirmations.find((q) => q.consignment === cid && q.line === lineNo);
 
+export const carrierHandoverFor = (cid: string) => DAY.carrierHandovers.find((h) => h.consignment === cid);
+export const returnByRef = (ref: string) => DAY.returns.find((r) => r.ref === ref);
+
 export const exceptionFor = (loadId: string) => DAY.exceptions.find((e) => e.load === loadId);
 
 /** ⚠ The scan gate counts LINES accounted for, not units. A line with three
@@ -215,11 +241,10 @@ export const PIN_GRADE: Record<PinGrade, { label: string; note: string; rank: 0 
   NotRequired: { label: 'Not required', note: 'Collected at the counter — there is no delivery address.', rank: 0 },
 };
 
-/* ⚠⚠ TWO LANES ON THE BOARD — internal review, 21 August. `carrier` still exists
-   in the day (CN-VE-000125 is a real hired-carrier job and TRP-002 §3 gives it
-   D-07) but it has no tab in this build, because three columns of small rows was
-   the thing that read as a spreadsheet. It is named in the handoff as not built
-   rather than deleted from the data. */
+/* ⚠ The board's lanes. The 21 Aug review cut it to two tabs; the Gain demo
+   (Phase 2, 25 Nov) puts the carrier lane back as a third TAB, not a third
+   column — URD 10.12 asks for transporter management, and a tab keeps one queue
+   on screen at a time, which was the point of the review. */
 export const LANES: { key: Lane; title: string; sub: string }[] = [
   {
     key: 'collection',

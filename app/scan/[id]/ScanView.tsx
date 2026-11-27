@@ -19,7 +19,7 @@
  */
 
 import { useRouter } from 'next/navigation';
-import { collectionFor, consignment, DAY, serialsFor } from '@/lib/day';
+import { carrierHandoverFor, collectionFor, consignment, DAY, serialsFor } from '@/lib/day';
 import { scanComplete, scanTally, useDesk } from '@/lib/state';
 import { ACC, AC8, BG, Btn, DIV, Grade, INK, Label, MONO, Mono, Note, Steps, SURF, Tag, WarnPanel } from '@/components/ui';
 
@@ -38,6 +38,7 @@ export default function ScanView({ id }: { id: string }) {
 
   const onward = () => {
     if (collection) return router.push(`/collection/${collection.ref}`);
+    if (carrierHandoverFor(c.id)) return router.push(`/carrier/${c.id}`);
     if (c.load) return router.push(`/handover/${c.load}`);
     return router.push('/board');
   };

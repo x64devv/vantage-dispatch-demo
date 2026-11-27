@@ -95,13 +95,14 @@ await go('/board/');
   ok(`the tablet renders larger than its design pixels — measured ${Math.round(w)}px for a 1280px screen`, w > 1280);
 }
 
-/* ── The board: two tabs, cards ─────────────────────────────────────────── */
+/* ── The board: four tabs since Phase 2 (Gain demo), cards ──────────────── */
 {
   const t = await screenText();
   has('board · the collection tab', t, 'Awaiting collection');
   has('board · the driver tab', t, 'Awaiting our driver');
-  hasnt('board · the carrier lane is gone', t, 'Awaiting a carrier');
-  eq('board · exactly two tabs', await page.locator('[data-testid^="tab-"]').count(), 2);
+  has('board · the carrier tab is back (Phase 2)', t, 'Awaiting a carrier');
+  has('board · the returns tab (Phase 2)', t, 'Coming back');
+  eq('board · exactly four tabs', await page.locator('[data-testid^="tab-"]').count(), 4);
   // ⚠ Collection is first. It is not the minor case.
   const first = await page.locator('[data-testid^="tab-"]').first().getAttribute('data-testid');
   eq('board · collection is the first tab', first, 'tab-collection');
@@ -114,7 +115,9 @@ await go('/board/');
 
   await page.getByTestId('tab-ourDriver').click();
   await page.waitForTimeout(120);
-  has('board · Nancy is on the driver tab', await screenText(), 'Nancy Muhoni');
+  const td = await screenText();
+  has('board · Nancy is on the driver tab', td, 'Nancy Muhoni');
+  has('board · the transfer is named as a transfer', td, 'Transfer IDO-VE-2026-08-20-0007');
   // Big cards, not rows.
   const h = await page.getByTestId('card-CN-VE-000418').evaluate((e) => e.getBoundingClientRect().height);
   ok(`board · cards are card-sized — measured ${Math.round(h)}px`, h > 180);
@@ -128,8 +131,8 @@ await page.waitForURL('**/consignment/CN-VE-000418/**');
   const t = await screenText();
   has('verify · the three steps are on screen', t, 'Verify');
   has('verify · ...and where it goes', t, 'Hand over');
-  has('verify · the goods', t, 'CTV Samsung 85" QA85Q7FAAUXKE');
-  has('verify · the real §SD-4 bracket SKU', t, 'OB-MP-GB-801000067');
+  has('verify · the goods', t, 'Chest freezer Defy 300L CF300');
+  has('verify · the case line carries its GC- SKU', t, 'GC-200206');
   has('verify · the pin grade', await page.getByTestId('pin-grade').innerText(), 'Salesperson');
   has('verify · the invoice is named, not drawn', t, 'a re-rendered invoice is what the rule forbids');
   // ⚠ The serial is NOT a check on this screen — it cannot be answered by looking.
@@ -248,8 +251,12 @@ await go('/handover/LD-000377/');
   await page.waitForTimeout(140);
   await page.getByTestId('verify').click();
   await page.waitForTimeout(140);
-  await page.getByTestId('onward').click();
-  await page.waitForTimeout(160);
+  /* ⚠ Gain re-seed: CN-VE-000402 is a bale of sugar now, not a serialised
+     stove, so verify goes straight to the load sheet with no scan step. */
+  if (page.url().includes('/scan/')) {
+    await page.getByTestId('onward').click();
+    await page.waitForTimeout(160);
+  }
 
   has('handover · reached by clicking, not by URL', page.url(), '/handover/LD-000377');
   has('handover · the sheet says how to clear it', await screenText(), 'Tap one to scan it out');
@@ -337,7 +344,6 @@ await go('/handover/LD-000377/');
   const BLOCKED = 'CN-MW-000121'; // the one that is SUPPOSED to stop
 
   for (const c of day.consignments) {
-    if (c.lane === 'carrier') continue;  // no tab on the board, by design
     if (c.id === BLOCKED) continue;      // beat 5, walked in its own block above
 
     await go(`/consignment/${c.id}/`);
@@ -373,7 +379,7 @@ await go('/handover/LD-000377/');
 
     /* And it ends somewhere a consignment can actually finish. */
     const where = page.url();
-    const finishable = where.includes('/handover/') || where.includes('/collection/') || where.includes('/board');
+    const finishable = where.includes('/handover/') || where.includes('/collection/') || where.includes('/carrier/') || where.includes('/board');
     ok(`${c.id} · reaches a screen where it can leave the building — got ${where}`, finishable);
   }
 }
@@ -502,6 +508,81 @@ await go('/collection/COL-VE-2026-08-20-0007/');
   await shot('07-collection');
 }
 
+/* ── Phase 2: the hired carrier, walked by clicking ─────────────────────── */
+{
+  await resetDesk();
+  await page.getByTestId('tab-carrier').click();
+  await page.waitForTimeout(120);
+  has('carrier · the card names the carrier', await screenText(), 'Kopje Haulage · AHX2205');
+  await page.getByTestId('card-CN-VE-000125').click();
+  await page.waitForTimeout(140);
+  for (const id of ['description', 'quantity', 'condition']) {
+    await page.getByTestId(`check-${id}`).getByRole('button', { name: 'Yes' }).click();
+  }
+  has('carrier · verify names who takes it', await page.getByTestId('verify').innerText(), 'hand to Kopje Haulage');
+  await page.getByTestId('verify').click();
+  await page.waitForTimeout(160);
+  has('carrier · counted goods skip the scan and reach the carrier hand-over', page.url(), '/carrier/CN-VE-000125');
+  let t = await screenText();
+  has('carrier · says he is not tracked after the gate', t, 'After the gate there is no tracking and no proof at the door');
+  has('carrier · the gate pass', t, 'GP-VE-2026-08-20-0024');
+  hasU('carrier · he signs on this tablet', t, 'on T118');
+  const done = page.getByTestId('carrier-complete');
+  eq('carrier · inert before evidence', await done.getAttribute('aria-disabled'), 'true');
+  has('carrier · ...and names both missing pieces', await done.innerText(), 'the load photograph and his signature');
+  await page.getByTestId('load-photo').click();
+  const canvas = page.getByTestId('signature');
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(90);
+  eq('carrier · live once photographed and signed', await done.getAttribute('aria-disabled'), null);
+  await done.click();
+  await page.waitForTimeout(140);
+  t = await screenText();
+  has('carrier · handed over, with the proof that is still owed', t, 'Proof of delivery is due back by 2026-08-22');
+  await shot('20-carrier');
+  await go('/board/');
+  await page.getByTestId('tab-carrier').click();
+  await page.waitForTimeout(120);
+  hasU('carrier · the card has left the building', await page.getByTestId('card-CN-VE-000125').innerText(), 'Left the building');
+}
+
+/* ── Phase 2: goods coming back, received into stock ────────────────────── */
+{
+  await resetDesk();
+  await page.getByTestId('tab-returning').click();
+  await page.waitForTimeout(120);
+  const card = page.getByTestId('return-RTN-VE-2026-08-20-0001');
+  has('return · the card says why it came back', await card.innerText(), 'nobody at the address');
+  await card.click();
+  await page.waitForTimeout(140);
+  let t = await screenText();
+  has('return · names the driver exception', t, 'EX-000029097');
+  has('return · the seal it came back under', t, '44087');
+  has('return · the rebook belongs to the selling branch', t, 'the branch that sold it');
+  const recv = page.getByTestId('return-receive');
+  eq('return · inert until the seal and every line are answered', await recv.getAttribute('aria-disabled'), 'true');
+  has('return · ...and says how many are left', await recv.innerText(), '3 checks left');
+  await page.getByTestId('return-seal').getByRole('button', { name: 'Yes' }).click();
+  await page.getByTestId('return-line-1').getByRole('button', { name: 'Yes' }).click();
+  /* ⚠ One line short: the stock still comes in, and the difference is named. */
+  await page.getByTestId('return-line-2').getByRole('button', { name: 'No' }).click();
+  await page.waitForTimeout(90);
+  t = await screenText();
+  has('return · a short line is an outcome, not an error', t, 'Not everything came back as it left.');
+  has('return · ...and the button says what it does', await recv.innerText(), 'raise the difference');
+  hasnt('return · no skip', t.toLowerCase(), 'skip');
+  await recv.click();
+  await page.waitForTimeout(140);
+  t = await screenText();
+  has('return · back in stock', t, 'Back in stock at Willowvale');
+  has('return · the difference is in the clerk name', t, 'an exception is raised for it, in your name');
+  await shot('21-return');
+}
+
 /* ── The unserialised collection skips the scan ─────────────────────────── */
 await go('/consignment/CN-AV-000015/');
 {
@@ -513,7 +594,7 @@ await go('/consignment/CN-AV-000015/');
   await page.getByTestId('verify').click();
   await page.waitForURL('**/collection/COL-VE-2026-08-20-0006/**');
   const t = await screenText();
-  has('collection · the bedset', t, 'Luxury Supreme Bedset Queen');
+  has('collection · the counted collection', t, 'Maize meal 10kg, bag');
   has('collection · says it carries no serial', t, 'Not serialised');
   hasnt('collection · and shows none', t, '#G-0000047760');
   await shot('08-collection-unserialised');

@@ -10,6 +10,37 @@ linear flow, 108 assertions passing. The projector pass is not done, and nobody 
 
 ---
 
+## 0. ⚠⚠ Gain re-seed (25 Nov 2026) — branch `gain/reseed`
+
+Re-seeded to show Gain (URD 10.11 / 10.12), demo only. The shared identity map, which all three apps
+follow, is **`../GAIN-RESEED.md`** — change an identity there and in all three apps, never in one.
+
+- **Everything business-shaped is illustrative, not Gain's records:** branch names (codes kept),
+  registrations (`AHF5121 · GC103` on the run), goods (wholesale cases; the only serial on trip 05 is
+  stop 4's chest freezer), GC- SKUs, invoice 414414's reference and fiscal signature. A tag reading
+  *"Illustrative data — not Gain's records"* sits outside the device frame on every route.
+- **TVSH's real data is gone from this branch.** Do not reintroduce it.
+- **Unchanged:** the day, clocks, suburbs, coordinates, routes cache, trip/load/seal ids, receipt
+  `PAY-101-D204-000037`, `USD 1 150.00`, people's names, the block on `CN-MW-000121`, and the four
+  survivors.
+- Hire-to-buy is off trip 05 (it stays in the product; `CN-AV-000120` still carries a contract).
+- The sections below are the TVSH build's history; read their identities through the map above.
+- ⚠⚠ **No handoff on this machine.** `lib/dispatch-day.json` is the source on this branch; its pin in
+  `lib/dispatch-day.sha256` was rewritten after the re-seed, and `derive-run.mjs` falls back to the
+  local copy when the handoff is absent. Derivation: **137 of 137** values agree with the driver run;
+  D1/D2 are closed. `verify.mjs`: **180 of 180** on Windows, 25 Nov.
+- ⚠ The 14-day / 3% collection penalty is carried over from TVSH — **an assumption to confirm with Gain.**
+- **Phase 2 (25 Nov):** four board tabs — collection, our driver, **a carrier** (`/carrier/[id]`: load
+  photo, gate pass, the carrier's driver signs on T118, proof due back on paper) and **coming back**
+  (`/return/[ref]`: yesterday's failed delivery received into stock — seal, every line counted, a
+  "no" still receives and raises the difference in the clerk's name). The transfer is named on its
+  card and its verify screen. Data in `carrierHandovers` / `returns`, pin rewritten.
+  `verify.mjs`: **205 of 205**; derive 137/137.
+- **Cross-app walk fix (25 Nov):** §6.2 is closed — LD-000381 (trip 03) and EX-000029114 are now
+  C. Nyathi's (`STAFF-1190`), matching the console. T. Mukanya drives trip 05 only. Pin rewritten.
+
+---
+
 ## 1. What this is, and what it is not
 
 A **five-screen Next.js tablet app**, static export, all state client-side, no server. It is the third
